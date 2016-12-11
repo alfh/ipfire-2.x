@@ -22,14 +22,13 @@ HOME=/
 
 # Make some nice graphs
 */5 * * * * 	/usr/local/bin/makegraphs >/dev/null
-17 5 * * * 	/etc/init.d/tmpfs backup >/dev/null
 
-# Force update the dynamic dns registration once a week
-# Force update even if IP has not changed once a month if 'minimize update' selected in GUI
-# to avoid account declared as dead
-*/5 * * * *	[ -f "/var/ipfire/red/active" ] && /usr/local/bin/setddns.pl
-9 2 * * 0	[ -f "/var/ipfire/red/active" ] && /usr/local/bin/setddns.pl -f
-3 2 1 * *	[ -f "/var/ipfire/red/active" ] && /usr/local/bin/setddns.pl -f -m
+# Backup ramdisks if necessary
+%nightly,random * 23-4	/etc/init.d/collectd backup &>/dev/null
+%nightly,random * 23-4	/etc/init.d/vnstat backup &>/dev/null
+
+# Update dynamic DNS records every five minutes.
+*/5 * * * *	[ -f "/var/ipfire/red/active" ] && /usr/bin/ddns update-all
 
 # Logwatch
 01 0 * * *	/usr/local/bin/logwatch > /var/log/logwatch/`date -I -d yesterday`; \
@@ -50,9 +49,6 @@ HOME=/
 %weekly  * 3-5   /var/ipfire/updatexlrator/autocheck/cron.weekly
 %monthly * 3-5 * /var/ipfire/updatexlrator/autocheck/cron.monthly
 
-# Reset Dialup Statistics
-&bootrun 0 0 1 * *	/usr/local/bin/dialctrl.pl reset
-
 # fireinfo
 %nightly,random * 23-4	/usr/bin/sendprofile >/dev/null 2>&1
 
@@ -62,3 +58,15 @@ HOME=/
 # Re-read firewall rules every Sunday in March, October and November to take care of daylight saving time
 00 3 * 3 0          /usr/local/bin/timezone-transition /usr/local/bin/firewallctrl
 00 2 * 10-11 0      /usr/local/bin/timezone-transition /usr/local/bin/firewallctrl
+
+# Update GeoIP database once a month.
+%monthly,random * * * [ -f "/var/ipfire/red/active" ] && /usr/local/bin/xt_geoip_update >/dev/null 2>&1
+
+# Retry sending spooled mails regularly
+%hourly * /usr/sbin/dma -q
+
+# Cleanup the mail spool directory
+%weekly * * /usr/sbin/dma-cleanup-spool
+
+# Update DNS trust anchor
+%daily,random * * @runas(nobody) /usr/sbin/unbound-anchor -a /var/lib/unbound/root.key -c /etc/unbound/icannbundle.pem

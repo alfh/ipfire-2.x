@@ -2,7 +2,7 @@
 ###############################################################################
 #                                                                             #
 # IPFire.org - A linux based firewall                                         #
-# Copyright (C) 2007-2011  IPFire Team  <info@ipfire.org>                     #
+# Copyright (C) 2007-2014  IPFire Team  <info@ipfire.org>                     #
 #                                                                             #
 # This program is free software: you can redistribute it and/or modify        #
 # it under the terms of the GNU General Public License as published by        #
@@ -70,7 +70,10 @@ elsif ($pppsettings{'ACTION'} eq $Lang::tr{'refresh'})
 }
 elsif ($pppsettings{'ACTION'} eq $Lang::tr{'save'})
 {
-        if ($pppsettings{'TYPE'} =~ /^(modem|serial|isdn)$/ && $pppsettings{'COMPORT'} !~ /^(ttyS0|ttyS1|ttyS2|ttyS3|ttyS4|ttyACM0|ttyACM1|ttyACM2|ttyACM3|ttyUSB0|ttyUSB1|ttyUSB2|ttyUSB3|rfcomm0|rfcomm1|isdn1|isdn2)$/) {
+        if ($pppsettings{'TYPE'} =~ /^(modem|serial|isdn)$/ && $pppsettings{'COMPORT'} !~ /^(ttyS0|ttyS1|ttyS2|ttyS3|ttyS4|ttyACM[0-9]|ttyUSB[0-9]|rfcomm0|rfcomm1|isdn1|isdn2)$/) {
+                $errormessage = $Lang::tr{'invalid input'};
+                goto ERROR; }
+        if ($pppsettings{'TYPE'} =~ /^(modem|serial|isdn)$/ && $pppsettings{'MONPORT'} !~ /^(|ttyACM[0-9]|ttyUSB[0-9]|rfcomm0|rfcomm1)$/) {
                 $errormessage = $Lang::tr{'invalid input'};
                 goto ERROR; }
         if ($pppsettings{'TYPE'} =~ /^(modem|serial)$/ && $pppsettings{'DTERATE'} !~ /^(9600|19200|38400|57600|115200|230400|460800|921600)$/) {
@@ -100,10 +103,7 @@ elsif ($pppsettings{'ACTION'} eq $Lang::tr{'save'})
                 if ($pppsettings{'USERNAME'} eq '') {
                         $errormessage = $Lang::tr{'username not set'};
                         goto ERROR; }
-                if ($pppsettings{'PASSWORD'} eq '') {
-                        $errormessage = $Lang::tr{'password not set'};
-                        goto ERROR; }
-        }
+		}
 
         if ($pppsettings{'TIMEOUT'} eq '') {
                 $errormessage = $Lang::tr{'idle timeout not set'};
@@ -149,6 +149,9 @@ elsif ($pppsettings{'ACTION'} eq $Lang::tr{'save'})
                         goto ERROR; }
                 if (($pppsettings{'VPI'} eq '0') && ($pppsettings{'VCI'} eq '0')) {
                         $errormessage = $Lang::tr{'invalid vpi vpci'};
+                        goto ERROR; }
+                if ($pppsettings{'ATM_DEV'} eq '') {
+                        $errormessage = $Lang::tr{'invalid input'};
                         goto ERROR; }
                 if ( $pppsettings{'PROTOCOL'} eq '' ) {
                         $errormessage = $Lang::tr{'invalid input'};
@@ -327,13 +330,50 @@ $selected{'COMPORT'}{'ttyACM0'} = '';
 $selected{'COMPORT'}{'ttyACM1'} = '';
 $selected{'COMPORT'}{'ttyACM2'} = '';
 $selected{'COMPORT'}{'ttyACM3'} = '';
+$selected{'COMPORT'}{'ttyACM4'} = '';
+$selected{'COMPORT'}{'ttyACM5'} = '';
+$selected{'COMPORT'}{'ttyACM6'} = '';
+$selected{'COMPORT'}{'ttyACM7'} = '';
+$selected{'COMPORT'}{'ttyACM8'} = '';
+$selected{'COMPORT'}{'ttyACM9'} = '';
 $selected{'COMPORT'}{'ttyUSB0'} = '';
 $selected{'COMPORT'}{'ttyUSB1'} = '';
 $selected{'COMPORT'}{'ttyUSB2'} = '';
 $selected{'COMPORT'}{'ttyUSB3'} = '';
+$selected{'COMPORT'}{'ttyUSB4'} = '';
+$selected{'COMPORT'}{'ttyUSB5'} = '';
+$selected{'COMPORT'}{'ttyUSB6'} = '';
+$selected{'COMPORT'}{'ttyUSB7'} = '';
+$selected{'COMPORT'}{'ttyUSB8'} = '';
+$selected{'COMPORT'}{'ttyUSB9'} = '';
 $selected{'COMPORT'}{'rfcomm0'} = '';
 $selected{'COMPORT'}{'rfcomm1'} = '';
 $selected{'COMPORT'}{$pppsettings{'COMPORT'}} = "selected='selected'";
+
+$selected{'MONPORT'}{''} = '';
+$selected{'MONPORT'}{'ttyACM0'} = '';
+$selected{'MONPORT'}{'ttyACM1'} = '';
+$selected{'MONPORT'}{'ttyACM2'} = '';
+$selected{'MONPORT'}{'ttyACM3'} = '';
+$selected{'MONPORT'}{'ttyACM4'} = '';
+$selected{'MONPORT'}{'ttyACM5'} = '';
+$selected{'MONPORT'}{'ttyACM6'} = '';
+$selected{'MONPORT'}{'ttyACM7'} = '';
+$selected{'MONPORT'}{'ttyACM8'} = '';
+$selected{'MONPORT'}{'ttyACM9'} = '';
+$selected{'MONPORT'}{'ttyUSB0'} = '';
+$selected{'MONPORT'}{'ttyUSB1'} = '';
+$selected{'MONPORT'}{'ttyUSB2'} = '';
+$selected{'MONPORT'}{'ttyUSB3'} = '';
+$selected{'MONPORT'}{'ttyUSB4'} = '';
+$selected{'MONPORT'}{'ttyUSB5'} = '';
+$selected{'MONPORT'}{'ttyUSB6'} = '';
+$selected{'MONPORT'}{'ttyUSB7'} = '';
+$selected{'MONPORT'}{'ttyUSB8'} = '';
+$selected{'MONPORT'}{'ttyUSB9'} = '';
+$selected{'MONPORT'}{'rfcomm0'} = '';
+$selected{'MONPORT'}{'rfcomm1'} = '';
+$selected{'MONPORT'}{$pppsettings{'MONPORT'}} = "selected='selected'";
 
 $selected{'DTERATE'}{'9600'} = '';
 $selected{'DTERATE'}{'19200'} = '';
@@ -569,20 +609,68 @@ END
                 <option value='ttyUSB1' $selected{'COMPORT'}{'ttyUSB1'}>ttyUSB1</option>
                 <option value='ttyUSB2' $selected{'COMPORT'}{'ttyUSB2'}>ttyUSB2</option>
                 <option value='ttyUSB3' $selected{'COMPORT'}{'ttyUSB3'}>ttyUSB3</option>
+                <option value='ttyUSB4' $selected{'COMPORT'}{'ttyUSB4'}>ttyUSB4</option>
+                <option value='ttyUSB5' $selected{'COMPORT'}{'ttyUSB5'}>ttyUSB5</option>
+                <option value='ttyUSB6' $selected{'COMPORT'}{'ttyUSB6'}>ttyUSB6</option>
+                <option value='ttyUSB7' $selected{'COMPORT'}{'ttyUSB7'}>ttyUSB7</option>
+                <option value='ttyUSB8' $selected{'COMPORT'}{'ttyUSB8'}>ttyUSB8</option>
+                <option value='ttyUSB9' $selected{'COMPORT'}{'ttyUSB9'}>ttyUSB9</option>
                 <option value='rfcomm0' $selected{'COMPORT'}{'rfcomm0'}>rfcomm0 (bluetooth)</option>
                 <option value='rfcomm1' $selected{'COMPORT'}{'rfcomm1'}>rfcomm1 (bluetooth)</option>
 END
 ;
                 if ($pppsettings{'TYPE'} ne 'serial' ) {
                         print <<END
-                <option value='ttyACM0' $selected{'COMPORT'}{'ttyACM0'}>$Lang::tr{'usb modem on acm0'}</option>
-                <option value='ttyACM1' $selected{'COMPORT'}{'ttyACM1'}>$Lang::tr{'usb modem on acm1'}</option>
-                <option value='ttyACM2' $selected{'COMPORT'}{'ttyACM2'}>$Lang::tr{'usb modem on acm2'}</option>
-                <option value='ttyACM3' $selected{'COMPORT'}{'ttyACM3'}>$Lang::tr{'usb modem on acm3'}</option>
+                <option value='ttyACM0' $selected{'COMPORT'}{'ttyACM0'}>ttyACM0</option>
+                <option value='ttyACM1' $selected{'COMPORT'}{'ttyACM1'}>ttyACM1</option>
+                <option value='ttyACM2' $selected{'COMPORT'}{'ttyACM2'}>ttyACM2</option>
+                <option value='ttyACM3' $selected{'COMPORT'}{'ttyACM3'}>ttyACM3</option>
+                <option value='ttyACM4' $selected{'COMPORT'}{'ttyACM4'}>ttyACM4</option>
+                <option value='ttyACM5' $selected{'COMPORT'}{'ttyACM5'}>ttyACM5</option>
+                <option value='ttyACM6' $selected{'COMPORT'}{'ttyACM6'}>ttyACM6</option>
+                <option value='ttyACM7' $selected{'COMPORT'}{'ttyACM7'}>ttyACM7</option>
+                <option value='ttyACM8' $selected{'COMPORT'}{'ttyACM8'}>ttyACM8</option>
+                <option value='ttyACM9' $selected{'COMPORT'}{'ttyACM9'}>ttyACM9</option>
 END
 ;
                 }
     print "</select></td>       "}
+
+	if ($pppsettings{'TYPE'} =~ /^(modem|serial)$/) {
+		print <<END;
+			<tr>
+				<td colspan='3' width='75%'>$Lang::tr{'monitor interface'}:</td>
+				<td width='25%'>
+					<select name="MONPORT" style="width: 165px;">
+						<option value="" $selected{'MONPORT'}{''}>---</option>
+						<option value="ttyUSB0" $selected{'MONPORT'}{'ttyUSB0'}>ttyUSB0</option>
+						<option value="ttyUSB1" $selected{'MONPORT'}{'ttyUSB1'}>ttyUSB1</option>
+						<option value="ttyUSB2" $selected{'MONPORT'}{'ttyUSB2'}>ttyUSB2</option>
+						<option value="ttyUSB3" $selected{'MONPORT'}{'ttyUSB3'}>ttyUSB3</option>
+						<option value="ttyUSB4" $selected{'MONPORT'}{'ttyUSB4'}>ttyUSB4</option>
+						<option value="ttyUSB5" $selected{'MONPORT'}{'ttyUSB5'}>ttyUSB5</option>
+						<option value="ttyUSB6" $selected{'MONPORT'}{'ttyUSB6'}>ttyUSB6</option>
+						<option value="ttyUSB7" $selected{'MONPORT'}{'ttyUSB7'}>ttyUSB7</option>
+						<option value="ttyUSB8" $selected{'MONPORT'}{'ttyUSB8'}>ttyUSB8</option>
+						<option value="ttyUSB9" $selected{'MONPORT'}{'ttyUSB9'}>ttyUSB9</option>
+						<option value="rfcomm0" $selected{'COMPORT'}{'rfcomm0'}>rfcomm0 (bluetooth)</option>
+						<option value="rfcomm1" $selected{'COMPORT'}{'rfcomm1'}>rfcomm1 (bluetooth)</option>
+						<option value="ttyACM0" $selected{'COMPORT'}{'ttyACM0'}>ttyACM0</option>
+						<option value="ttyACM1" $selected{'COMPORT'}{'ttyACM1'}>ttyACM1</option>
+						<option value="ttyACM2" $selected{'COMPORT'}{'ttyACM2'}>ttyACM2</option>
+						<option value="ttyACM3" $selected{'COMPORT'}{'ttyACM3'}>ttyACM3</option>
+						<option value="ttyACM4" $selected{'COMPORT'}{'ttyACM4'}>ttyACM4</option>
+						<option value="ttyACM5" $selected{'COMPORT'}{'ttyACM5'}>ttyACM5</option>
+						<option value="ttyACM6" $selected{'COMPORT'}{'ttyACM6'}>ttyACM6</option>
+						<option value="ttyACM7" $selected{'COMPORT'}{'ttyACM7'}>ttyACM7</option>
+						<option value="ttyACM8" $selected{'COMPORT'}{'ttyACM8'}>ttyACM8</option>
+						<option value="ttyACM9" $selected{'COMPORT'}{'ttyACM9'}>ttyACM9</option>
+					</select>
+				</td>
+			</tr>
+END
+	}
+
                 if ($pppsettings{'TYPE'} =~ /^(modem|serial)$/ ) {
                         print <<END
   <tr>
@@ -602,7 +690,7 @@ END
 ;
                 }
                 if ($pppsettings{'TYPE'} =~ /^(modem)$/ ) {
-                        print "<tr><td colspan='3' width='75%'>$Lang::tr{'number'}</td>\n";
+                        print "<tr><td colspan='3' width='75%'>$Lang::tr{'number'}&nbsp;<img src='/blob.gif' alt='*' /></td>\n";
                         print "<td width='25%'><input type='text' name='TELEPHONE' value='$pppsettings{'TELEPHONE'}'></td><tr>\n";
                         if ($pppsettings{'TYPE'} eq 'modem' ) {
                                 print "<tr><td colspan='3' width='75%'>$Lang::tr{'modem speaker on'}</td>\n";
@@ -620,15 +708,15 @@ END
         </select></td>
 </tr>
 <tr>
-        <td colspan='3' width='75%'>$Lang::tr{'optional at cmd'}&nbsp;1&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td colspan='3' width='75%'>$Lang::tr{'optional at cmd'}&nbsp;1</td>
         <td width='25%'><input type='text' name='ADD_AT1' value='$pppsettings{'ADD_AT1'}'></td>
 </tr>
 <tr>
-        <td colspan='3' width='75%'>$Lang::tr{'optional at cmd'}&nbsp;2&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td colspan='3' width='75%'>$Lang::tr{'optional at cmd'}&nbsp;2</td>
         <td width='25%'><input type='text' name='ADD_AT2' value='$pppsettings{'ADD_AT2'}'></td>
 </tr>
 <tr>
-        <td colspan='3' width='75%'>$Lang::tr{'optional at cmd'}&nbsp;3&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td colspan='3' width='75%'>$Lang::tr{'optional at cmd'}&nbsp;3</td>
         <td width='25%'><input type='text' name='ADD_AT3' value='$pppsettings{'ADD_AT3'}'></td>
 </tr>
 <tr>
@@ -641,7 +729,7 @@ END
 
 print <<END
 <tr>
-        <td colspan='3' width='75%'>$Lang::tr{'idle timeout'}</td>
+        <td colspan='3' width='75%'>$Lang::tr{'idle timeout'}&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td width='25%'><input type='text' name='TIMEOUT' value='$pppsettings{'TIMEOUT'}' /></td>
 </tr>
  <tr>
@@ -683,11 +771,11 @@ print <<END
   <td width='25%'><input type='checkbox' name='DIALONDEMANDDNS' $checked{'DIALONDEMANDDNS'}{'on'} /></td>
 </tr>
 <tr>
-        <td colspan='3' width='75%'>$Lang::tr{'holdoff'}:</td>
+        <td colspan='3' width='75%'>$Lang::tr{'holdoff'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td width='25%'><input type='text' name='HOLDOFF' value='$pppsettings{'HOLDOFF'}' /></td>
 </tr>
 <tr>
-        <td colspan='3' width='75%'>$Lang::tr{'maximum retries'}</td>
+        <td colspan='3' width='75%'>$Lang::tr{'maximum retries'}&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td width='25%'><input type='text' name='MAXRETRIES' value='$pppsettings{'MAXRETRIES'}' /></td>
 </tr>
 END
@@ -702,15 +790,15 @@ print <<END
         <td colspan='4' width='100%' bgcolor='$color{'color20'}'><b>$Lang::tr{'pptp settings'}</b></td>
 </tr>
 <tr>
-        <td width='25%'>Peer</td>
+        <td width='25%'>$Lang::tr{'pptp peer'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td colspan='3'><input size=50 type='text' name='PPTP_PEER' value='$pppsettings{'PPTP_PEER'}' /></td>
 </tr>
 <tr>
-        <td width='25%'>My Netconfig</td>
+        <td width='25%'>$Lang::tr{'pptp netconfig'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td colspan='3'><input size=50 type='text' name='PPTP_NICCFG' value='$pppsettings{'PPTP_NICCFG'}' /></td>
 </tr>
 <tr>
-        <td width='25%'>PPTP Route&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td width='25%'>$Lang::tr{'pptp route'}:</td>
         <td colspan='3'><input size=50 type='text' name='PPTP_ROUTE' value='$pppsettings{'PPTP_ROUTE'}' /></td>
 </tr>
 
@@ -723,11 +811,12 @@ if ($pppsettings{'TYPE'} =~ /^(pppoeatm|pptpatm)$/)
 
 print <<END
 <tr>
-        <td colspan='4' width='100%' bgcolor='$color{'color20'}'><b>$Lang::tr{'adsl settings'}:</b></td>
+        <td colspan='4' width='100%' bgcolor='$color{'color20'}'><b>$Lang::tr{'atm settings'}:</b></td>
 <tr>
-
+        <td nowrap='nowrap'>$Lang::tr{'atm device'}</td>
+        <td><input type='text' size='5' name='ATM_DEV' value='$pppsettings{'ATM_DEV'}' /></td>
         <td> $Lang::tr{'encapsulation'}:</td>
-        <td colspan='2' width='30%'>
+        <td>
                 <select name='ENCAP'>
                    <option value='0' $selected{'ENCAP'}{'0'}>LLC</option>
                    <option value='1' $selected{'ENCAP'}{'1'}>VCmux</option>
@@ -735,11 +824,10 @@ print <<END
         </td>
 </tr>
 <tr>
-
         <td nowrap='nowrap'>$Lang::tr{'vpi number'}</td>
         <td><input type='text' size='5' name='VPI' value='$pppsettings{'VPI'}' /></td>
-        <td align='right'>$Lang::tr{'vci number'}</td>
-        <td colspan='2'><input type='text' size='5' name='VCI' value='$pppsettings{'VCI'}' /></td>
+        <td> $Lang::tr{'vci number'}</td>
+        <td><input type='text' size='5' name='VCI' value='$pppsettings{'VCI'}' /></td>
 </tr>
 END
 ;
@@ -798,12 +886,12 @@ print <<END
         <td colspan='4' width='100%' bgcolor='$color{'color20'}'><b>$Lang::tr{'pppoe settings'}</b></td>
 </tr>
 <tr>
-        <td width='25%'>$Lang::tr{'service name'}&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td width='25%'>$Lang::tr{'service name'}</td>
         <td colspan='2' width='50%'></td>
         <td width='25%'><input type='text' name='SERVICENAME' value='$pppsettings{'SERVICENAME'}' /></td>
 </tr>
 <tr>
-        <td width='25%'>$Lang::tr{'concentrator name'}&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td width='25%'>$Lang::tr{'concentrator name'}</td>
         <td colspan='2' width='50%'></td>
         <td width='25%'><input type='text' name='CONCENTRATORNAME' value='$pppsettings{'CONCENTRATORNAME'}' /></td>
 </tr>
@@ -818,11 +906,11 @@ print <<END
 </tr>
 <tr>
 <tr>
-        <td width='25%'>MTU&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td width='25%'>MTU:</td>
         <td width='25%'><input type='text' name='MTU' value='$pppsettings{'MTU'}' /></td>
 </tr>
 <tr>
-        <td width='25%'>MRU&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td width='25%'>MRU:</td>
         <td width='25%'><input type='text' name='MRU' value='$pppsettings{'MRU'}' /></td>
 </tr>
 END
@@ -834,9 +922,9 @@ print <<END
         <td bgcolor='$color{'color20'}' colspan='4' width='100%'><b>$Lang::tr{'authentication'}</b></td>
 </tr>
 <tr>
-        <td width='25%'>$Lang::tr{'username'}</td>
+        <td width='25%'>$Lang::tr{'username'}&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td width='25%'><input type='text' name='USERNAME' value='$pppsettings{'USERNAME'}' /></td>
-        <td width='25%'>$Lang::tr{'password'}</td>
+        <td width='25%'>$Lang::tr{'password'}&nbsp;</td>
         <td width='25%'><input type='password' name='PASSWORD' value='$pppsettings{'PASSWORD'}' /></td>
 </tr>
 <tr>
@@ -857,7 +945,7 @@ END
 }
 print <<END
         </select></td>
-        <td width='25%'>$Lang::tr{'script name'}&nbsp;<img src='/blob.gif' alt='*' /></td>
+        <td width='25%'>$Lang::tr{'script name'}</td>
         <td width='25%'><input type='text' name='LOGINSCRIPT' value='$pppsettings{'LOGINSCRIPT'}' /></td>
 </tr>
 <tr><td colspan='4' width='100%'><br></br></td></tr>
@@ -878,7 +966,7 @@ print <<END
 </tr>
 <tr><td colspan='4' width='100%'><br></br><hr></hr><br></br></td></tr>
 <tr>
-        <td width='25%'>$Lang::tr{'profile name'}</td>
+        <td width='25%'>$Lang::tr{'profile name'}&nbsp;<img src='/blob.gif' alt='*' /></td>
         <td width='25%'><input type='text' name='PROFILENAME' value='$pppsettings{'PROFILENAME'}'>
         <td colspan='2' width='50%'></td>
 </tr>
@@ -887,13 +975,15 @@ print <<END
 </tr>
 <tr>
         <td colspan='2' width='50%'>$Lang::tr{'legend'}:</td>
-        <td colspan='2' width='50%'><img src='/blob.gif' alt='*' />&nbsp;$Lang::tr{'this field may be blank'}</td>
+        <td colspan='2' width='50%'><img src='/blob.gif' alt='*' />&nbsp;$Lang::tr{'required field'}</td>
 </tr>
-</table>
 END
 ;
-&Header::closebox();
 }
+
+print "</table>";
+
+&Header::closebox();
 
 print "</form>\n";
 
@@ -926,6 +1016,7 @@ sub initprofile
 {
         $pppsettings{'PROFILENAME'} = $Lang::tr{'unnamed'};
         $pppsettings{'COMPORT'} = 'ttyS0';
+        $pppsettings{'MONPORT'} = '';
         $pppsettings{'DTERATE'} = 115200;
         $pppsettings{'SPEAKER'} = 'off';
         $pppsettings{'RECONNECTION'} = 'persistent';
@@ -939,6 +1030,7 @@ sub initprofile
         $pppsettings{'ENCAP'} = '0';
         $pppsettings{'VPI'} = '1';
         $pppsettings{'VCI'} = '32';
+        $pppsettings{'ATM_DEV'} = '0';
         $pppsettings{'PPTP_PEER'} = '10.0.0.138';
 	$pppsettings{'PPTP_NICCFG'} = '10.0.0.140/24 broadcast 10.0.0.255';
 	$pppsettings{'PPTP_ROUTE'} = '';

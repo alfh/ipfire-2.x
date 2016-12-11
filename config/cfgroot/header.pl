@@ -45,6 +45,7 @@ my %menuhash = ();
 my $menu = \%menuhash;
 %settings = ();
 %ethsettings = ();
+%pppsettings = ();
 @URI = ();
 
 ### Make sure this is an SSL request
@@ -57,12 +58,13 @@ if ($ENV{'SERVER_ADDR'} && $ENV{'HTTPS'} ne 'on') {
 ### Initialize environment
 &General::readhash("${swroot}/main/settings", \%settings);
 &General::readhash("${swroot}/ethernet/settings", \%ethsettings);
-$language = $settings{'LANGUAGE'};
+&General::readhash("${swroot}/ppp/settings", \%pppsettings);
 $hostname = $settings{'HOSTNAME'};
 $hostnameintitle = 0;
 
 ### Initialize language
-if ($language =~ /^(\w+)$/) {$language = $1;}
+require "${swroot}/lang.pl";
+$language = &Lang::FindWebLanguage($settings{"LANGUAGE"});
 
 ### Read English Files
 if ( -d "/var/ipfire/langs/en/" ) {
@@ -140,6 +142,8 @@ sub genmenu {
     my %sublogshash = ();
     my $sublogs = \%sublogshash;
 
+  if ( -e "/var/ipfire/main/gpl_accepted") {
+
     eval `/bin/cat /var/ipfire/menu.d/*.menu`;
     eval `/bin/cat /var/ipfire/menu.d/*.main`;
 
@@ -153,6 +157,11 @@ sub genmenu {
     if (&General::RedIsWireless()) {
         $menu->{'01.system'}{'subMenu'}->{'21.wlan'}{'enabled'} = 1;
     }
+
+    if ( $ethsettings{'RED_TYPE'} eq "PPPOE" && $pppsettings{'MONPORT'} ne "" ) {
+        $menu->{'02.status'}{'subMenu'}->{'74.modem-status'}{'enabled'} = 1;
+    }
+  }
 }
 
 sub showhttpheaders
@@ -254,7 +263,7 @@ sub getcgihash {
 	return if ($ENV{'REQUEST_METHOD'} ne 'POST');
 	if (!$params->{'wantfile'}) {
 		$CGI::DISABLE_UPLOADS = 1;
-		$CGI::POST_MAX        = 512 * 1024;
+		$CGI::POST_MAX        = 1024 * 1024;
 	} else {
 		$CGI::POST_MAX = 10 * 1024 * 1024;
 	}

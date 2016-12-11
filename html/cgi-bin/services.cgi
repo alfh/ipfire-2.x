@@ -49,7 +49,7 @@ my %servicenames =(
 	$Lang::tr{'dhcp server'} => 'dhcpd',
 	$Lang::tr{'web server'} => 'httpd',
 	$Lang::tr{'cron server'} => 'fcron',
-	$Lang::tr{'dns proxy server'} => 'dnsmasq',
+	$Lang::tr{'dns proxy server'} => 'unbound',
 	$Lang::tr{'logging server'} => 'syslogd',
 	$Lang::tr{'kernel logging server'} => 'klogd',
 	$Lang::tr{'ntp server'} => 'ntpd',
@@ -188,6 +188,9 @@ END
 			# mdadm should not stopped with webif because this could crash the system
 			#
 			chomp($_);
+			if ( $_ eq 'squid' ) {
+				next;
+			}
 			if ( ($_ ne "alsa") && ($_ ne "mdadm") ) {
 				$lines++;
 				if ($lines % 2){

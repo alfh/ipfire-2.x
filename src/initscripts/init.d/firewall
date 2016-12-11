@@ -21,9 +21,11 @@ iptables_init() {
 	iptables -F
 	iptables -t nat -F
 	iptables -t mangle -F
+	iptables -t raw -F
 	iptables -X
 	iptables -t nat -X
 	iptables -t mangle -X
+	iptables -t raw -X
 
 	# Set up policies
 	iptables -P INPUT DROP
@@ -64,25 +66,98 @@ iptables_init() {
 	iptables -A BADTCP -i lo -j RETURN
 
 	# Disallow packets frequently used by port-scanners
-	# nmap xmas
-	iptables -A BADTCP -p tcp --tcp-flags ALL FIN,URG,PSH  -j PSCAN
-	# Null
-	iptables -A BADTCP -p tcp --tcp-flags ALL NONE -j PSCAN
-	# FIN
+	# NMAP FIN/URG/PSH (XMAS scan)
+	iptables -A BADTCP -p tcp --tcp-flags ALL FIN,URG,PSH -j PSCAN
+	# SYN/RST/ACK/FIN/URG
+	iptables -A BADTCP -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j PSCAN
+	# ALL/ALL
+	iptables -A BADTCP -p tcp --tcp-flags ALL ALL -j PSCAN
+	# FIN Stealth
 	iptables -A BADTCP -p tcp --tcp-flags ALL FIN -j PSCAN
 	# SYN/RST (also catches xmas variants that set SYN+RST+...)
 	iptables -A BADTCP -p tcp --tcp-flags SYN,RST SYN,RST -j PSCAN
 	# SYN/FIN (QueSO or nmap OS probe)
 	iptables -A BADTCP -p tcp --tcp-flags SYN,FIN SYN,FIN -j PSCAN
+	# Null
+	iptables -A BADTCP -p tcp --tcp-flags ALL NONE -j PSCAN
 	# NEW TCP without SYN
 	iptables -A BADTCP -p tcp ! --syn -m conntrack --ctstate NEW -j NEWNOTSYN
 
 	iptables -A INPUT   -p tcp -j BADTCP
 	iptables -A FORWARD -p tcp -j BADTCP
 
-	# Connection tracking chain
+	# Connection tracking chains
 	iptables -N CONNTRACK
-	iptables -A CONNTRACK -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+	iptables -A CONNTRACK -m conntrack --ctstate ESTABLISHED -j ACCEPT
+	iptables -A CONNTRACK -m conntrack --ctstate INVALID -j DROP
+	iptables -A CONNTRACK -p icmp -m conntrack --ctstate RELATED -j ACCEPT
+	iptables -t raw -N CONNTRACK
+	iptables -t raw -A PREROUTING -j CONNTRACK
+
+	# Conntrack helpers (https://home.regit.org/netfilter-en/secure-use-of-helpers/)
+
+	# SIP
+	if [ "${CONNTRACK_SIP}" = "on" ]; then
+		modprobe nf_nat_sip
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper sip -j ACCEPT
+		for proto in udp tcp; do
+			iptables -t raw -A CONNTRACK -p "${proto}" --dport 5060 -j CT --helper sip
+		done
+	fi
+
+	# H.323
+	if [ "${CONNTRACK_H323}" = "on" ]; then
+		modprobe nf_nat_h323
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper h323 -j ACCEPT
+
+		# Gatekeeper RAS
+		iptables -t raw -A CONNTRACK -p udp --dport 1719 -j CT --helper RAS
+
+		# Q.931
+		iptables -t raw -A CONNTRACK -p tcp --dport 1720 -j CT --helper Q.931
+	fi
+
+	# FTP
+	if [ "${CONNTRACK_FTP}" = "on" ]; then
+		modprobe nf_nat_ftp
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper ftp -p tcp --dport 1024: -j ACCEPT
+		iptables -t raw -A CONNTRACK -p tcp --dport 21 -j CT --helper ftp
+	fi
+
+	# PPTP
+	if [ "${CONNTRACK_PPTP}" = "on" ]; then
+		modprobe nf_nat_pptp
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper pptp -j ACCEPT
+		iptables -t raw -A CONNTRACK -p tcp --dport 1723 -j CT --helper pptp
+	fi
+
+	# TFTP
+	if [ "${CONNTRACK_TFTP}" = "on" ]; then
+		modprobe nf_nat_tftp
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper tftp -j ACCEPT
+		iptables -t raw -A CONNTRACK -p udp --dport 69 -j CT --helper tftp
+	fi
+
+	# IRC
+	if [ "${CONNTRACK_IRC}" = "on" ]; then
+		modprobe nf_nat_irc
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper irc -j ACCEPT
+		iptables -t raw -A CONNTRACK -p tcp --dport 6667 -j CT --helper irc
+	fi
+
+	# Amanda
+	if [ "${CONNTRACK_AMANDA}" = "on" ]; then
+		modprobe nf_nat_amanda
+		iptables -A CONNTRACK -m conntrack --ctstate RELATED \
+			-m helper --helper amanda -j ACCEPT
+		iptables -t raw -A CONNTRACK -p tcp -j CT --helper amanda
+	fi
 
 	# Fix for braindead ISP's
 	iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
@@ -99,16 +174,27 @@ iptables_init() {
 	iptables -t nat -N CUSTOMPOSTROUTING
 	iptables -t nat -A POSTROUTING -j CUSTOMPOSTROUTING
 
+	# P2PBLOCK
+	iptables -N P2PBLOCK
+	iptables -A INPUT -j P2PBLOCK
+	iptables -A FORWARD -j P2PBLOCK
+	iptables -A OUTPUT -j P2PBLOCK
+	
 	# Guardian (IPS) chains
 	iptables -N GUARDIAN
 	iptables -A INPUT -j GUARDIAN
 	iptables -A FORWARD -j GUARDIAN
 
+	# Block non-established IPsec networks
+	iptables -N IPSECBLOCK
+	iptables -A FORWARD -m policy --dir out --pol none -j IPSECBLOCK
+	iptables -A OUTPUT  -m policy --dir out --pol none -j IPSECBLOCK
+
 	# Block OpenVPN transfer networks
 	iptables -N OVPNBLOCK
-	for i in INPUT FORWARD; do
-		iptables -A ${i} -j OVPNBLOCK
-	done
+	iptables -A INPUT   -i tun+ -j OVPNBLOCK
+	iptables -A FORWARD -i tun+ -j OVPNBLOCK
+	iptables -A FORWARD -o tun+ -j OVPNBLOCK
 
 	# OpenVPN transfer network translation
 	iptables -t nat -N OVPNNAT
@@ -120,10 +206,10 @@ iptables_init() {
 	iptables -N IPTVFORWARD
 	iptables -A FORWARD -j IPTVFORWARD
 
-	# filtering from GUI
-	iptables -N GUIINPUT
-	iptables -A INPUT -j GUIINPUT
-	iptables -A GUIINPUT -p icmp --icmp-type 8 -j ACCEPT
+	# Allow to ping the firewall.
+	iptables -N ICMPINPUT
+	iptables -A INPUT -j ICMPINPUT
+	iptables -A ICMPINPUT -p icmp --icmp-type 8 -j ACCEPT
 
 	# Accept everything on loopback
 	iptables -N LOOPBACK
@@ -143,6 +229,36 @@ iptables_init() {
 		iptables -A ${i} -j CONNTRACK
 	done
 
+	# Allow DHCP
+	iptables -N DHCPINPUT
+	iptables -A DHCPINPUT -p udp --sport 68 --dport 67 -j ACCEPT
+	iptables -A DHCPINPUT -p tcp --sport 68 --dport 67 -j ACCEPT
+
+	iptables -N DHCPOUTPUT
+	iptables -A DHCPOUTPUT -p udp --sport 67 --dport 68 -j ACCEPT
+	iptables -A DHCPOUTPUT -p tcp --sport 67 --dport 68 -j ACCEPT
+
+	# Allow DHCP on GREEN
+	iptables -N DHCPGREENINPUT
+	iptables -N DHCPGREENOUTPUT
+	if [ -n "${GREEN_DEV}" ]; then
+		iptables -A INPUT  -i "${GREEN_DEV}" -j DHCPGREENINPUT
+		iptables -A OUTPUT -o "${GREEN_DEV}" -j DHCPGREENOUTPUT
+	fi
+
+	# allow DHCP on BLUE to be turned on/off
+	iptables -N DHCPBLUEINPUT
+	iptables -N DHCPBLUEOUTPUT
+	if [ -n "${BLUE_DEV}" ]; then
+		iptables -A INPUT  -i "${BLUE_DEV}" -j DHCPBLUEINPUT
+		iptables -A OUTPUT -o "${BLUE_DEV}" -j DHCPBLUEOUTPUT
+	fi
+
+	# GeoIP block
+	iptables -N GEOIPBLOCK
+	iptables -A INPUT -j GEOIPBLOCK
+	iptables -A FORWARD -j GEOIPBLOCK
+
 	# trafic from ipsecX/TUN/TAP interfaces, before "-i GREEN_DEV" accept everything
 	iptables -N IPSECINPUT
 	iptables -N IPSECFORWARD
@@ -154,12 +270,11 @@ iptables_init() {
 	iptables -t nat -A POSTROUTING -j IPSECNAT
 
 	# localhost and ethernet.
-	iptables -A INPUT   -i $GREEN_DEV  -m conntrack --ctstate NEW -j ACCEPT ! -p icmp
-	
-	# allow DHCP on BLUE to be turned on/off
-	iptables -N DHCPBLUEINPUT 
-	iptables -A INPUT -j DHCPBLUEINPUT
-	
+	# Always allow accessing the web GUI from GREEN.
+	iptables -N GUIINPUT
+	iptables -A INPUT -j GUIINPUT
+	iptables -A GUIINPUT -i "${GREEN_DEV}" -p tcp --dport 444 -j ACCEPT
+
 	# WIRELESS chains
 	iptables -N WIRELESSINPUT
 	iptables -A INPUT -m conntrack --ctstate NEW -j WIRELESSINPUT
@@ -188,6 +303,40 @@ iptables_init() {
 	iptables -t nat -N NAT_SOURCE
 	iptables -t nat -A POSTROUTING -j NAT_SOURCE
 
+	# Custom prerouting chains (for transparent proxy)
+	iptables -t nat -N SQUID
+	iptables -t nat -A PREROUTING -j SQUID
+
+	# DNAT rules
+	iptables -t nat -N NAT_DESTINATION
+	iptables -t nat -A PREROUTING -j NAT_DESTINATION
+	iptables -t nat -A OUTPUT -j NAT_DESTINATION
+
+	iptables -t mangle -N NAT_DESTINATION
+	iptables -t mangle -A PREROUTING -j NAT_DESTINATION
+
+	iptables -t nat -N NAT_DESTINATION_FIX
+	iptables -t nat -A POSTROUTING -j NAT_DESTINATION_FIX
+
+	iptables -t nat -A NAT_DESTINATION_FIX \
+		-m mark --mark 1 -j SNAT --to-source "${GREEN_ADDRESS}"
+
+	if [ -n "${BLUE_ADDRESS}" ]; then
+		iptables -t nat -A NAT_DESTINATION_FIX \
+			-m mark --mark 2 -j SNAT --to-source "${BLUE_ADDRESS}"
+	fi
+
+	if [ -n "${ORANGE_ADDRESS}" ]; then
+		iptables -t nat -A NAT_DESTINATION_FIX \
+			-m mark --mark 3 -j SNAT --to-source "${ORANGE_ADDRESS}"
+	fi
+
+	# upnp chain for our upnp daemon
+	iptables -t nat -N UPNPFW
+	iptables -t nat -A PREROUTING -j UPNPFW
+	iptables -N UPNPFW
+	iptables -A FORWARD -m conntrack --ctstate NEW -j UPNPFW
+
 	# RED chain, used for the red interface
 	iptables -N REDINPUT
 	iptables -A INPUT -j REDINPUT
@@ -196,21 +345,8 @@ iptables_init() {
 	iptables -t nat -N REDNAT
 	iptables -t nat -A POSTROUTING -j REDNAT
 
-	iptables_red
-
-	# Custom prerouting chains (for transparent proxy)
-	iptables -t nat -N SQUID
-	iptables -t nat -A PREROUTING -j SQUID
-
-	# DNAT rules
-	iptables -t nat -N NAT_DESTINATION
-	iptables -t nat -A PREROUTING -j NAT_DESTINATION
-
-	# upnp chain for our upnp daemon
-	iptables -t nat -N UPNPFW
-	iptables -t nat -A PREROUTING -j UPNPFW
-	iptables -N UPNPFW
-	iptables -A FORWARD -m conntrack --ctstate NEW -j UPNPFW
+	# Populate IPsec block chain
+	/usr/lib/firewall/ipsec-block
 
 	# Apply OpenVPN firewall rules
 	/usr/local/bin/openvpnctrl --firewall-rules
@@ -226,22 +362,20 @@ iptables_init() {
 	iptables -N POLICYOUT
 	iptables -A OUTPUT -j POLICYOUT
 
+	# Initialize firewall policies.
 	/usr/sbin/firewall-policy
 
-	# read new firewall
-	/usr/local/bin/firewallctrl
+	# Install firewall rules for the red interface.
+	iptables_red_up
 
-	if [ "$DROPINPUT" == "on" ]; then
-		iptables -A INPUT   -m limit --limit 10/minute -j LOG --log-prefix "DROP_INPUT"
+	# If red has not been brought up yet, we will
+	# add the blocking rules for MASQUERADE
+	if [ ! -e "/var/ipfire/red/active" ]; then
+		iptables_red_down
 	fi
-	iptables -A INPUT -j DROP -m comment --comment "DROP_INPUT"
-	if [ "$DROPFORWARD" == "on" ]; then
-		iptables -A FORWARD -m limit --limit 10/minute -j LOG --log-prefix "DROP_FORWARD"
-	fi
-	iptables -A FORWARD -j DROP -m comment --comment "DROP_FORWARD"
 }
 
-iptables_red() {
+iptables_red_up() {
 	iptables -F REDINPUT
 	iptables -F REDFORWARD
 	iptables -t nat -F REDNAT
@@ -287,56 +421,70 @@ iptables_red() {
 
 		# Outgoing masquerading (don't masqerade IPSEC (mark 50))
 		iptables -t nat -A REDNAT -m mark --mark 50 -o $IFACE -j RETURN
-		iptables -t nat -A REDNAT -o $IFACE -j MASQUERADE
 
+		if [ "${IFACE}" = "${GREEN_DEV}" ]; then
+			iptables -t nat -A REDNAT -i "${GREEN_DEV}" -o "${IFACE}" -j RETURN
+		fi
+
+		local NO_MASQ_NETWORKS
+
+		if [ "${MASQUERADE_GREEN}" = "off" ]; then
+			NO_MASQ_NETWORKS="${NO_MASQ_NETWORKS} ${GREEN_NETADDRESS}/${GREEN_NETMASK}"
+		fi
+
+		if [ "${MASQUERADE_BLUE}" = "off" ]; then
+			NO_MASQ_NETWORKS="${NO_MASQ_NETWORKS} ${BLUE_NETADDRESS}/${BLUE_NETMASK}"
+		fi
+
+		if [ "${MASQUERADE_ORANGE}" = "off" ]; then
+			NO_MASQ_NETWORKS="${NO_MASQ_NETWORKS} ${ORANGE_NETADDRESS}/${ORANGE_NETMASK}"
+		fi
+
+		local network
+		for network in ${NO_MASQ_NETWORKS}; do
+			iptables -t nat -A REDNAT -s "${network}" -o "${IFACE}" -j RETURN
+		done
+
+		# Masquerade everything else
+		iptables -t nat -A REDNAT -o $IFACE -j MASQUERADE
 	fi
+
+	# Reload all rules.
+	/usr/local/bin/firewallctrl
+}
+
+iptables_red_down() {
+	# Prohibit packets to reach the masquerading rule
+	# while the wan interface is down - this is required to
+	# circumvent udp related NAT issues
+	# http://forum.ipfire.org/index.php?topic=11127.0
+	if [ -n "${IFACE}" ]; then
+		iptables -F REDFORWARD
+		iptables -A REDFORWARD -o "${IFACE}" -j DROP
+	fi
+
+	# Reload all rules.
+	/usr/local/bin/firewallctrl
 }
 
 # See how we were called.
 case "$1" in
   start)
-	boot_mesg "Loading firewall modules into the kernel"
-	modprobe iptable_nat || failed=1
-	for i in $(find /lib/modules/$(uname -r) -name nf_conntrack*); do
-		modprobe $(basename $i | cut -d. -f1) || failed=1
-	done
-	for i in $(find /lib/modules/$(uname -r) -name nf_nat*); do
-		modprobe $(basename $i | cut -d. -f1) || failed=1
-	done
-	(exit ${failed})
-	evaluate_retval
-
-	if [ -e /var/ipfire/main/disable_nf_sip ]; then
-		rmmod nf_nat_sip
-		rmmod nf_conntrack_sip
-		rmmod nf_nat_h323
-		rmmod nf_conntrack_h323
-	fi
-
 	boot_mesg "Setting up firewall"
 	iptables_init
 	evaluate_retval
-
-	# run local firewall configuration, if present
-	if [ -x /etc/sysconfig/firewall.local ]; then
-		/etc/sysconfig/firewall.local start
-	fi
 	;;
-  reload)
+  reload|up)
 	boot_mesg "Reloading firewall"
-	iptables_red
+	iptables_red_up
 	evaluate_retval
-
-	# run local firewall configuration, if present
-	if [ -x /etc/sysconfig/firewall.local ]; then
-		/etc/sysconfig/firewall.local reload
-	fi
+	;;
+  down)
+	boot_mesg "Disabling firewall access to RED"
+	iptables_red_down
+	evaluate_retval
 	;;
   restart)
-	# run local firewall configuration, if present
-	if [ -x /etc/sysconfig/firewall.local ]; then
-		/etc/sysconfig/firewall.local stop
-	fi
 	$0 start
 	;;
   *)

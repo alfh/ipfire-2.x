@@ -1,7 +1,7 @@
-    $subfirewall->{'10.forward'} = {
-				'caption' => $Lang::tr{'fwdfw menu'},
+    $subfirewall->{'10.firewall'} = {
+				'caption' => $Lang::tr{'firewall rules'},
 				'uri' => '/cgi-bin/firewall.cgi',
-				'title' => "$Lang::tr{'fwdfw menu'}",
+				'title' => "$Lang::tr{'firewall rules'}",
 				'enabled' => 1,
 				};
 	$subfirewall->{'20.fwhost'} = {
@@ -20,6 +20,12 @@
 				'caption' => $Lang::tr{'p2p block'},
 				'uri' => '/cgi-bin/p2p-block.cgi',
 				'title' => "P2P-Block",
+				'enabled' => 1,
+				};
+    $subfirewall->{'50.geoipblock'} = {
+				'caption' => $Lang::tr{'geoipblock'},
+				'uri' => '/cgi-bin/geoip-block.cgi',
+				'title' => $Lang::tr{'geoipblock'},
 				'enabled' => 1,
 				};
     $subfirewall->{'60.wireless'} = {

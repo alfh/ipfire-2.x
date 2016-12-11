@@ -2,7 +2,7 @@
 ###############################################################################
 #                                                                             #
 # IPFire.org - A linux based firewall                                         #
-# Copyright (C) 2007-2013  IPFire Team  <info@ipfire.org>                     #
+# Copyright (C) 2007-2015  IPFire Team  <info@ipfire.org>                     #
 #                                                                             #
 # This program is free software: you can redistribute it and/or modify        #
 # it under the terms of the GNU General Public License as published by        #
@@ -55,16 +55,7 @@ $snortsettings{'ENABLE_SNORT'} = 'off';
 $snortsettings{'ENABLE_SNORT_GREEN'} = 'off';
 $snortsettings{'ENABLE_SNORT_BLUE'} = 'off';
 $snortsettings{'ENABLE_SNORT_ORANGE'} = 'off';
-$snortsettings{'ENABLE_GUARDIAN'} = 'off';
-$snortsettings{'GUARDIAN_INTERFACE'} = `cat /var/ipfire/red/iface`;
-$snortsettings{'GUARDIAN_HOSTGATEWAYBYTE'} = '1';
-$snortsettings{'GUARDIAN_LOGFILE'} = '/var/log/guardian/guardian.log';
-$snortsettings{'GUARDIAN_ALERTFILE'} = '/var/log/snort/alert';
-$snortsettings{'GUARDIAN_IGNOREFILE'} = '/var/ipfire/guardian/guardian.ignore';
-$snortsettings{'GUARDIAN_TARGETFILE'} = '/var/ipfire/guardian/guardian.target';
-$snortsettings{'GUARDIAN_TIMELIMIT'} = '86400';
 $snortsettings{'ACTION'} = '';
-$snortsettings{'ACTION2'} = '';
 $snortsettings{'RULES'} = '';
 $snortsettings{'OINKCODE'} = '';
 $snortsettings{'INSTALLDATE'} = '';
@@ -263,11 +254,11 @@ if (-e "/etc/snort/snort.conf") {
 #######################  End added for snort rules control  #################################
 
 if ($snortsettings{'RULES'} eq 'subscripted') {
-	$url=" http://www.snort.org/sub-rules/snortrules-snapshot-2953.tar.gz/$snortsettings{'OINKCODE'}";
+	$url=" https://www.snort.org/rules/snortrules-snapshot-2982.tar.gz?oinkcode=$snortsettings{'OINKCODE'}";
 } elsif ($snortsettings{'RULES'} eq 'registered') {
-	$url=" http://www.snort.org/reg-rules/snortrules-snapshot-2950.tar.gz/$snortsettings{'OINKCODE'}";
+	$url=" https://www.snort.org/rules/snortrules-snapshot-2982.tar.gz?oinkcode=$snortsettings{'OINKCODE'}";
 } elsif ($snortsettings{'RULES'} eq 'community') {
-	$url=" http://s3.amazonaws.com/snort-org/www/rules/community/community-rules.tar.gz";
+	$url=" https://www.snort.org/rules/community";
 } else {
 	$url="http://rules.emergingthreats.net/open/snort-2.9.0/emerging.rules.tar.gz";
 }
@@ -311,39 +302,11 @@ if ($snortsettings{'ACTION'} eq $Lang::tr{'save'} && $snortsettings{'ACTION2'} e
 	} else {
 		unlink "${General::swroot}/snort/enable_preprocessor_http_inspect";
 	}
-	if ($snortsettings{'ENABLE_GUARDIAN'} eq 'on')
-	{
-		system ('/usr/bin/touch', "${General::swroot}/guardian/enable");
-	} else {
-		unlink "${General::swroot}/guardian/enable";
-	}
 
 	system('/usr/local/bin/snortctrl restart >/dev/null');
 
-} elsif ($snortsettings{'ACTION'} eq $Lang::tr{'save'} && $snortsettings{'ACTION2'} eq "guardian" ){
-			foreach my $key (keys %snortsettings){
-				if ( $key !~ /^GUARDIAN/ ){
-					delete $snortsettings{$key};
-				}
-			}
-			&General::writehashpart("${General::swroot}/snort/settings", \%snortsettings);
-			open(IGNOREFILE, ">$snortsettings{'GUARDIAN_IGNOREFILE'}") or die "Unable to write guardian ignore file $snortsettings{'GUARDIAN_IGNOREFILE'}";
-				print IGNOREFILE $snortsettings{'GUARDIAN_IGNOREFILE_CONTENT'};
-			close(IGNOREFILE);
-			open(GUARDIAN, ">/var/ipfire/guardian/guardian.conf") or die "Unable to write guardian conf /var/ipfire/guardian/guardian.conf";
-				print GUARDIAN <<END
-Interface   $snortsettings{'GUARDIAN_INTERFACE'}
-HostGatewayByte   $snortsettings{'GUARDIAN_HOSTGATEWAYBYTE'}
-LogFile   $snortsettings{'GUARDIAN_LOGFILE'}
-AlertFile   $snortsettings{'GUARDIAN_ALERTFILE'}
-IgnoreFile   $snortsettings{'GUARDIAN_IGNOREFILE'}
-TargetFile   $snortsettings{'GUARDIAN_TARGETFILE'}
-TimeLimit   $snortsettings{'GUARDIAN_TIMELIMIT'}
-END
-;
-			close(GUARDIAN);
-	  	system('/usr/local/bin/snortctrl restart >/dev/null');
 }
+
 	 # INSTALLMD5 is not in the form, so not retrieved by getcgihash
 	&General::readhash("${General::swroot}/snort/settings", \%snortsettings);
 
@@ -400,9 +363,6 @@ $checked{'ENABLE_SNORT_BLUE'}{$snortsettings{'ENABLE_SNORT_BLUE'}} = "checked='c
 $checked{'ENABLE_SNORT_ORANGE'}{'off'} = '';
 $checked{'ENABLE_SNORT_ORANGE'}{'on'} = '';
 $checked{'ENABLE_SNORT_ORANGE'}{$snortsettings{'ENABLE_SNORT_ORANGE'}} = "checked='checked'";
-$checked{'ENABLE_GUARDIAN'}{'off'} = '';
-$checked{'ENABLE_GUARDIAN'}{'on'} = '';
-$checked{'ENABLE_GUARDIAN'}{$snortsettings{'ENABLE_GUARDIAN'}} = "checked='checked'";
 $selected{'RULES'}{'nothing'} = '';
 $selected{'RULES'}{'community'} = '';
 $selected{'RULES'}{'emerging'} = '';
@@ -472,7 +432,7 @@ if ($return) {
 				$Lang::tr{'snort working'}
 		<tr><td colspan='2' align='center'>
 			<form method='post' action='$ENV{'SCRIPT_NAME'}'>
-				<input type='image' alt='$Lang::tr{'reload'}' src='/images/view-refresh.png' />
+				<input type='image' alt='$Lang::tr{'reload'}' title='$Lang::tr{'reload'}' src='/images/view-refresh.png' />
 			</form>
 		<tr><td colspan='2' align='left'><pre>
 END
@@ -504,9 +464,6 @@ if ($netsettings{'ORANGE_DEV'} ne '') {
   print "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type='checkbox' name='ENABLE_SNORT_ORANGE' $checked{'ENABLE_SNORT_ORANGE'}{'on'} />   ORANGE Snort";
 }
   print "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type='checkbox' name='ENABLE_SNORT' $checked{'ENABLE_SNORT'}{'on'} />   RED Snort";
-if ( -e "/var/ipfire/guardian/guardian.conf" ) {
-  print "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type='checkbox' name='ENABLE_GUARDIAN' $checked{'ENABLE_GUARDIAN'}{'on'} />  Guardian";
-}
 
 print <<END
 </td></tr>
@@ -528,7 +485,7 @@ print <<END
 </tr>
 <tr>
 	<td><br />
-		$Lang::tr{'ids rules license'} <a href='https://www.snort.org/signup' target='_blank'>www.snort.org</a>$Lang::tr{'ids rules license1'}<br /><br />
+		$Lang::tr{'ids rules license'} <a href='https://www.snort.org/subscribe' target='_blank'>www.snort.org</a>$Lang::tr{'ids rules license1'}<br /><br />
 		$Lang::tr{'ids rules license2'} <a href='https://www.snort.org/account/oinkcode' target='_blank'>Get an Oinkcode</a>, $Lang::tr{'ids rules license3'}
 	</td>
 </tr>
@@ -563,32 +520,6 @@ if ($results ne '') {
 }
 
 &Header::closebox();
-
-####################### Added for guardian control ####################################
-if ( -e "/var/ipfire/guardian/guardian.conf" ) {
-	&Header::openbox('100%', 'LEFT', $Lang::tr{'guardian configuration'});
-print <<END
-<form method='post' action='$ENV{'SCRIPT_NAME'}'><table width='100%'>
-<tr><td align='left' width='40%'>$Lang::tr{'guardian interface'}</td><td align='left'><input type='text' name='GUARDIAN_INTERFACE' value='$snortsettings{'GUARDIAN_INTERFACE'}' size="30" /></td></tr>
-<tr><td align='left' width='40%'>$Lang::tr{'guardian timelimit'}</td><td align='left'><input type='text' name='GUARDIAN_TIMELIMIT' value='$snortsettings{'GUARDIAN_TIMELIMIT'}' size="30" /></td></tr>
-<tr><td align='left' width='40%'>$Lang::tr{'guardian logfile'}</td><td align='left'><input type='text' name='GUARDIAN_LOGFILE' value='$snortsettings{'GUARDIAN_LOGFILE'}' size="30" /></td></tr>
-<tr><td align='left' width='40%'>$Lang::tr{'guardian alertfile'}</td><td align='left'><input type='text' name='GUARDIAN_ALERTFILE' value='$snortsettings{'GUARDIAN_ALERTFILE'}' size="30" /></td></tr>
-<tr><td align='left' width='40%'>$Lang::tr{'guardian ignorefile'}</td><td align='left'><textarea name='GUARDIAN_IGNOREFILE_CONTENT' cols='32' rows='6' wrap='off'>
-END
-;
-	print `cat /var/ipfire/guardian/guardian.ignore`;
-print <<END
-</textarea></td></tr>
-<tr><td align='right' colspan='2'><input type='hidden' name='ACTION2' value='guardian' /><input type='submit' name='ACTION' value='$Lang::tr{'save'}' /></td></tr>
-</table>
-</form>
-END
-;
-	&Header::closebox();
-}
-
-
-
 
 ####################### Added for snort rules control #################################
 if ( -e "${General::swroot}/snort/enable" || -e "${General::swroot}/snort/enable_green" || -e "${General::swroot}/snort/enable_blue" || -e "${General::swroot}/snort/enable_orange" ) {

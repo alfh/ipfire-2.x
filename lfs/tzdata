@@ -1,7 +1,7 @@
 ###############################################################################
 #                                                                             #
 # IPFire.org - A linux based firewall                                         #
-# Copyright (C) 2007-2011  IPFire Team  <info@ipfire.org>                     #
+# Copyright (C) 2007-2016  IPFire Team  <info@ipfire.org>                     #
 #                                                                             #
 # This program is free software: you can redistribute it and/or modify        #
 # it under the terms of the GNU General Public License as published by        #
@@ -24,14 +24,17 @@
 
 include Config
 
-VER        = 2012h
-TZDATA_VER = 2012h
-TZCODE_VER = 2012h
+VER        = 2016d
+TZDATA_VER = $(VER)
+TZCODE_VER = $(VER)
 
 THISAPP    = tzdata-$(VER)
 DL_FROM    = $(URL_IPFIRE)
 DIR_APP    = $(DIR_SRC)/$(THISAPP)
 TARGET     = $(DIR_INFO)/$(THISAPP)
+
+FILES      = africa antarctica asia australasia europe \
+	northamerica southamerica pacificnew etcetera backward
 
 ###############################################################################
 # Top-level Rules
@@ -42,8 +45,8 @@ objects = tzdata$(TZDATA_VER).tar.gz tzcode$(TZCODE_VER).tar.gz
 tzdata$(TZDATA_VER).tar.gz = $(DL_FROM)/tzdata$(TZDATA_VER).tar.gz
 tzcode$(TZCODE_VER).tar.gz = $(DL_FROM)/tzcode$(TZCODE_VER).tar.gz
 
-tzdata$(TZDATA_VER).tar.gz_MD5 = b937335e087fb85b7f8e3ce33e69184b
-tzcode$(TZCODE_VER).tar.gz_MD5 = 44b3b6c3e50240ac44f16437040a7ba2
+tzdata$(TZDATA_VER).tar.gz_MD5 = 14bf84b6c2cdab0a9428991e0150ebe6
+tzcode$(TZCODE_VER).tar.gz_MD5 = 06fc6fc111cd8dd681abdc5326529afd
 
 install : $(TARGET)
 
@@ -77,16 +80,22 @@ $(TARGET) : $(patsubst %,$(DIR_DL)/%,$(objects))
 	tar axf $(DIR_DL)/tzdata$(TZDATA_VER).tar.gz -C $(DIR_APP)
 	tar axf $(DIR_DL)/tzcode$(TZCODE_VER).tar.gz -C $(DIR_APP)
 
-	cd $(DIR_APP) && make TOPDIR=/usr ETCDIR=/tmp LIBDIR=/tmp MANDIR=/tmp \
-		TZDIR=/usr/share/zoneinfo all
-	cd $(DIR_APP) && make TOPDIR=/usr ETCDIR=/tmp LIBDIR=/tmp MANDIR=/tmp \
-		TZDIR=/usr/share/zoneinfo install
+	cd $(DIR_APP) && mkdir -pv zoneinfo/{,posix,right}
+	cd $(DIR_APP) && zic -y ./yearistype -d zoneinfo \
+		-L /dev/null -p GMT $(FILES)
+	cd $(DIR_APP) && zic -y ./yearistype -d zoneinfo/posix \
+		-L /dev/null $(FILES)
+	cd $(DIR_APP) && zic -y ./yearistype -d zoneinfo/right \
+		-L leapseconds $(FILES)
 
-	-mkdir -pv /usr/share/zoneinfo
-	mv -v /usr/share/zoneinfo-posix /usr/share/zoneinfo/posix
-	mv -v /usr/share/zoneinfo-leaps /usr/share/zoneinfo/right
+	rm -rf /usr/share/zoneinfo
+	cd $(DIR_APP) && cp -prd zoneinfo /usr/share
+	cd $(DIR_APP) && install -p -m 644 zone.tab iso3166.tab \
+		/usr/share/zoneinfo
+
 	rm -vf /usr/share/zoneinfo/localtime
-
+	rm -vf /etc/localtime
 	cp -vf /usr/share/zoneinfo/GMT /etc/localtime
+
 	@rm -rf $(DIR_APP)
 	@$(POSTBUILD)

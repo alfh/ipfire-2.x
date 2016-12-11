@@ -1,9 +1,9 @@
 bin/kill
 bin/ps
-lib/libproc-3.2.6.so
+lib/libproc-3.2.8.so
 sbin/sysctl
 usr/bin/free
-#usr/bin/pgrep
+usr/bin/pgrep
 #usr/bin/pkill
 #usr/bin/pmap
 #usr/bin/pwdx

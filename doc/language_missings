@@ -1,30 +1,37 @@
 ############################################################################
-# Checking install/setup translations for language: en                     #
-############################################################################
-############################################################################
 # Checking cgi-bin translations for language: en                           #
 ############################################################################
 < addon
 < ccd maxclients
-############################################################################
-# Checking install/setup translations for language: fr                     #
-############################################################################
+< ovpn_fragment
 ############################################################################
 # Checking cgi-bin translations for language: fr                           #
 ############################################################################
 < addon
+< administrator password
+< administrator username
+< adsl settings
+< advproxy AUTH method ntlm
+< advproxy AUTH method ntlm auth
+< advproxy basic authentication
 < advproxy cache-digest
 < advproxy errmsg cache
 < advproxy errmsg invalid upstream proxy
 < advproxy errmsg proxy ports equal
+< advproxy group access control
+< advproxy group required
 < advproxy proxy port transparent
 < age second
 < age seconds
 < age shour
 < age sminute
 < age ssecond
+< application layer gateways
+< atm device
 < attention
 < bit
+< block
+< capabilities
 < ccd add
 < ccd choose net
 < ccd clientip
@@ -39,6 +46,8 @@
 < ccd err iroute
 < ccd err irouteexist
 < ccd err isipsecnet
+< ccd err isipsecrw
+< ccd err isovpnn2n
 < ccd err isovpnnet
 < ccd err issubnet
 < ccd err name
@@ -63,8 +72,30 @@
 < ccd routes
 < ccd subnet
 < ccd used
+< check all
+< ConnSched dial
+< ConnSched hangup
+< ConnSched reboot
+< ConnSched shutdown
+< count
+< countries
+< countrycode
+< country codes and flags
+< default
 < default ip
 < deprecated fs warn
+< details
+< dh
+< dhcp dns enable update
+< dhcp dns key name
+< dhcp dns update
+< dhcp dns update algo
+< dhcp dns update secret
+< dh key move failed
+< dh key warn
+< dh key warn1
+< dh parameter
+< dl client arch insecure
 < dnat address
 < dns address deleted txt
 < dnsforward
@@ -74,6 +105,14 @@
 < dnsforward entries
 < dnsforward forward_server
 < dnsforward zone
+< dnssec aware
+< dnssec information
+< dnssec not supported
+< dnssec validating
+< dns servers
+< downlink
+< download dh parameter
+< download tls-auth key
 < dpd delay
 < dpd timeout
 < drop action
@@ -81,8 +120,29 @@
 < drop action2
 < drop forward
 < drop outgoing
+< email config
+< email empty field
+< email error
+< email invalid
+< email invalid mailfqdn
+< email invalid mailip
+< email invalid mailport
+< email mailaddr
+< email mailpass
+< email mailport
+< email mailrcpt
+< email mailsender
+< email mailuser
+< email settings
+< email subject
+< email success
+< email testmail
+< email text
+< email tls
+< email usemail
 < encryption
 < entropy
+< entropy graphs
 < fireinfo ipfire version
 < fireinfo is disabled
 < fireinfo is enabled
@@ -100,8 +160,10 @@
 < fireinfo why enable
 < fireinfo why read more
 < fireinfo your profile id
+< firewall logs country
 < firewall rules
 < first
+< flag
 < forward firewall
 < fw default drop
 < fwdfw ACCEPT
@@ -120,12 +182,14 @@
 < fwdfw dnat porterr2
 < fwdfw DROP
 < fwdfw edit
+< fwdfw err concon
 < fwdfw err nosrc
 < fwdfw err nosrcip
 < fwdfw err notgt
 < fwdfw err notgtip
 < fwdfw err prot_port
 < fwdfw err prot_port1
+< fwdfw err ratecon
 < fwdfw err remark
 < fwdfw err ruleexists
 < fwdfw err same
@@ -144,9 +208,12 @@
 < fwdfw hint mac
 < fwdfw iface
 < fwdfw ipsec network
+< fwdfw limitconcon
 < fwdfw log
 < fwdfw log rule
 < fwdfw man port
+< fwdfw many
+< fwdfw maxconcon
 < fwdfw menu
 < fwdfw MODE1
 < fwdfw MODE2
@@ -154,6 +221,7 @@
 < fwdfw moveup
 < fwdfw natport used
 < fwdfw newrule
+< fwdfw numcon
 < fwdfw p2p txt
 < fwdfw pol allow
 < fwdfw pol block
@@ -162,6 +230,7 @@
 < fwdfw pol title
 < fwdfw prot41
 < fwdfw prot41 short
+< fwdfw ratelimit
 < fwdfw red
 < fwdfw REJECT
 < fwdfw reread
@@ -184,6 +253,7 @@
 < fwdfw use nat
 < fwdfw use srcport
 < fwdfw use srv
+< fwdfw warn1
 < fwdfw wd_fri
 < fwdfw wd_mon
 < fwdfw wd_sat
@@ -192,6 +262,7 @@
 < fwdfw wd_tue
 < fwdfw wd_wed
 < fwdfw xt access
+< fwhost addgeoipgrp
 < fwhost addgrp
 < fwhost addgrpname
 < fwhost addhost
@@ -207,8 +278,13 @@
 < fwhost change
 < fwhost changeremark
 < fwhost cust addr
+< fwhost cust geoip
+< fwhost cust geoipgroup
+< fwhost cust geoiplocation
 < fwhost cust grp
 < fwhost cust net
+< fwhost Custom Host
+< fwhost Custom Network
 < fwhost cust service
 < fwhost cust srvgrp
 < fwhost deleted
@@ -250,14 +326,20 @@
 < fwhost ipadr
 < fwhost ip_mac
 < fwhost ipsec host
+< fwhost IpSec Host
 < fwhost ipsec net
+< fwhost IpSec Network
 < fwhost menu
 < fwhost netaddress
+< fwhost newgeoipgrp
 < fwhost newgrp
 < fwhost newhost
 < fwhost newnet
 < fwhost newservice
 < fwhost newservicegrp
+< fwhost OpenVPN N-2-N
+< fwhost OpenVPN static host
+< fwhost OpenVPN static network
 < fwhost orange
 < fwhost ovpn_n2n
 < fwhost port
@@ -266,6 +348,7 @@
 < fwhost reset
 < fwhost services
 < fwhost srv_name
+< fwhost Standard Network
 < fwhost stdnet
 < fwhost type
 < fwhost used
@@ -276,10 +359,29 @@
 < fw settings dropdown
 < fw settings remark
 < fw settings ruletable
+< gen dh
+< generate dh key
+< geoip
+< geoipblock
+< geoipblock block countries
+< geoipblock configuration
+< geoipblock country code
+< geoipblock country is allowed
+< geoipblock country is blocked
+< geoipblock country name
+< geoipblock enable feature
+< geoipblock flag
 < grouptype
+< hardware support
+< imei
+< imsi
+< incoming compression in bytes per second
+< incoming firewall access
+< incoming overhead in bytes per second
 < integrity
 < invalid input for dpd delay
 < invalid input for dpd timeout
+< invalid input for valid till days
 < ipsec
 < ipsec network
 < ipsec no connections
@@ -287,13 +389,42 @@
 < least preferred
 < lifetime
 < mac filter
+< masquerade blue
+< masquerade green
+< masquerade orange
+< masquerading
+< masquerading disabled
+< masquerading enabled
 < maximum
+< MB read
+< MB written
+< messages
 < minimum
 < minute
+< model
+< modem hardware details
+< modem information
+< modem network bit error rate
+< modem network information
+< modem network mode
+< modem network operator
+< modem network registration
+< modem network signal quality
+< modem no connection
+< modem no connection message
+< modem sim information
+< modem status
+< monitor interface
 < most preferred
+< MTU settings
+< nameserver
+< never
+< no hardware random number generator
+< not a valid dh key
 < notice
 < ntp common settings
 < ntp sync
+< Number of Countries for the pie chart
 < openvpn default
 < openvpn destination port used
 < openvpn disabled
@@ -307,6 +438,19 @@
 < openvpn subnet is used
 < other
 < our donors
+< outgoing compression in bytes per second
+< outgoing firewall access
+< outgoing overhead in bytes per second
+< ovpn add conf
+< ovpn crypt options
+< ovpn dh
+< ovpn dh new key
+< ovpn dh parameters
+< ovpn dh upload
+< ovpn engines
+< ovpn generating the root and host certificates
+< ovpn ha
+< ovpn hmac
 < ovpn mgmt in root range
 < ovpn mtu-disc
 < ovpn mtu-disc and mtu not 1500
@@ -317,22 +461,37 @@
 < ovpn mtu-disc yes
 < ovpn no connections
 < ovpn port in root range
+< ovpn reneg sec
 < p2p block
 < p2p block save notice
+< pptp netconfig
+< pptp peer
+< pptp route
 < proxy reports
 < proxy reports daily
 < proxy reports monthly
 < proxy reports today
 < proxy reports weekly
 < qos enter bandwidths
+< random number generator daemon
 < red1
+< required field
+< samba join a domain
+< samba join domain
+< search
 < server restart
+< show dh
 < snat new source ip address
 < snort working
+< software version
+< source ip country
 < ssh
 < static routes
 < support donation
+< system has hwrng
+< system has rdrand
 < system information
+< ta key
 < tor
 < tor 0 = disabled
 < tor accounting
@@ -386,16 +545,24 @@
 < tor traffic limit soft
 < tor traffic read written
 < tor use exit nodes
+< unblock
+< unblock all
+< uncheck all
 < updxlrtr sources
 < updxlrtr standard view
+< uplink
+< upload dh key
 < upload new ruleset
 < uptime
 < uptime load average
 < urlfilter file ext block
 < urlfilter mode block
 < urlfilter redirect template
+< vendor
 < visit us at
 < vpn keyexchange
+< vpn statistic n2n
+< vpn statistic rw
 < wlanap access point
 < wlanap channel
 < wlanap country
@@ -449,25 +616,34 @@
 < wlan client wpa mode ccmp tkip
 < wlan client wpa mode tkip tkip
 ############################################################################
-# Checking install/setup translations for language: es                     #
-############################################################################
-############################################################################
 # Checking cgi-bin translations for language: es                           #
 ############################################################################
 < addon
+< administrator password
+< administrator username
+< adsl settings
+< advproxy AUTH method ntlm
+< advproxy AUTH method ntlm auth
+< advproxy basic authentication
 < advproxy cache-digest
 < advproxy errmsg cache
 < advproxy errmsg invalid upstream proxy
 < advproxy errmsg proxy ports equal
+< advproxy group access control
+< advproxy group required
 < advproxy proxy port transparent
 < age second
 < age seconds
 < age shour
 < age sminute
 < age ssecond
+< application layer gateways
 < Async logging enabled
+< atm device
 < attention
 < bit
+< block
+< capabilities
 < ccd add
 < ccd choose net
 < ccd clientip
@@ -482,6 +658,8 @@
 < ccd err iroute
 < ccd err irouteexist
 < ccd err isipsecnet
+< ccd err isipsecrw
+< ccd err isovpnn2n
 < ccd err isovpnnet
 < ccd err issubnet
 < ccd err name
@@ -506,8 +684,30 @@
 < ccd routes
 < ccd subnet
 < ccd used
+< check all
+< ConnSched dial
+< ConnSched hangup
+< ConnSched reboot
+< ConnSched shutdown
+< count
+< countries
+< countrycode
+< country codes and flags
+< default
 < default ip
 < deprecated fs warn
+< details
+< dh
+< dhcp dns enable update
+< dhcp dns key name
+< dhcp dns update
+< dhcp dns update algo
+< dhcp dns update secret
+< dh key move failed
+< dh key warn
+< dh key warn1
+< dh parameter
+< dl client arch insecure
 < dnat address
 < dnsforward
 < dnsforward add a new entry
@@ -516,6 +716,14 @@
 < dnsforward entries
 < dnsforward forward_server
 < dnsforward zone
+< dnssec aware
+< dnssec information
+< dnssec not supported
+< dnssec validating
+< dns servers
+< downlink
+< download dh parameter
+< download tls-auth key
 < dpd delay
 < dpd timeout
 < drop action
@@ -523,8 +731,29 @@
 < drop action2
 < drop forward
 < drop outgoing
+< email config
+< email empty field
+< email error
+< email invalid
+< email invalid mailfqdn
+< email invalid mailip
+< email invalid mailport
+< email mailaddr
+< email mailpass
+< email mailport
+< email mailrcpt
+< email mailsender
+< email mailuser
+< email settings
+< email subject
+< email success
+< email testmail
+< email text
+< email tls
+< email usemail
 < encryption
 < entropy
+< entropy graphs
 < fireinfo ipfire version
 < fireinfo is disabled
 < fireinfo is enabled
@@ -542,8 +771,10 @@
 < fireinfo why enable
 < fireinfo why read more
 < fireinfo your profile id
+< firewall logs country
 < firewall rules
 < first
+< flag
 < forward firewall
 < fw default drop
 < fwdfw ACCEPT
@@ -562,12 +793,14 @@
 < fwdfw dnat porterr2
 < fwdfw DROP
 < fwdfw edit
+< fwdfw err concon
 < fwdfw err nosrc
 < fwdfw err nosrcip
 < fwdfw err notgt
 < fwdfw err notgtip
 < fwdfw err prot_port
 < fwdfw err prot_port1
+< fwdfw err ratecon
 < fwdfw err remark
 < fwdfw err ruleexists
 < fwdfw err same
@@ -586,9 +819,12 @@
 < fwdfw hint mac
 < fwdfw iface
 < fwdfw ipsec network
+< fwdfw limitconcon
 < fwdfw log
 < fwdfw log rule
 < fwdfw man port
+< fwdfw many
+< fwdfw maxconcon
 < fwdfw menu
 < fwdfw MODE1
 < fwdfw MODE2
@@ -596,6 +832,7 @@
 < fwdfw moveup
 < fwdfw natport used
 < fwdfw newrule
+< fwdfw numcon
 < fwdfw p2p txt
 < fwdfw pol allow
 < fwdfw pol block
@@ -604,6 +841,7 @@
 < fwdfw pol title
 < fwdfw prot41
 < fwdfw prot41 short
+< fwdfw ratelimit
 < fwdfw red
 < fwdfw REJECT
 < fwdfw reread
@@ -626,6 +864,7 @@
 < fwdfw use nat
 < fwdfw use srcport
 < fwdfw use srv
+< fwdfw warn1
 < fwdfw wd_fri
 < fwdfw wd_mon
 < fwdfw wd_sat
@@ -634,6 +873,7 @@
 < fwdfw wd_tue
 < fwdfw wd_wed
 < fwdfw xt access
+< fwhost addgeoipgrp
 < fwhost addgrp
 < fwhost addgrpname
 < fwhost addhost
@@ -649,8 +889,13 @@
 < fwhost change
 < fwhost changeremark
 < fwhost cust addr
+< fwhost cust geoip
+< fwhost cust geoipgroup
+< fwhost cust geoiplocation
 < fwhost cust grp
 < fwhost cust net
+< fwhost Custom Host
+< fwhost Custom Network
 < fwhost cust service
 < fwhost cust srvgrp
 < fwhost deleted
@@ -692,14 +937,20 @@
 < fwhost ipadr
 < fwhost ip_mac
 < fwhost ipsec host
+< fwhost IpSec Host
 < fwhost ipsec net
+< fwhost IpSec Network
 < fwhost menu
 < fwhost netaddress
+< fwhost newgeoipgrp
 < fwhost newgrp
 < fwhost newhost
 < fwhost newnet
 < fwhost newservice
 < fwhost newservicegrp
+< fwhost OpenVPN N-2-N
+< fwhost OpenVPN static host
+< fwhost OpenVPN static network
 < fwhost orange
 < fwhost ovpn_n2n
 < fwhost port
@@ -708,6 +959,7 @@
 < fwhost reset
 < fwhost services
 < fwhost srv_name
+< fwhost Standard Network
 < fwhost stdnet
 < fwhost type
 < fwhost used
@@ -718,10 +970,19 @@
 < fw settings dropdown
 < fw settings remark
 < fw settings ruletable
+< gen dh
+< generate dh key
 < grouptype
+< hardware support
+< imei
+< imsi
+< incoming compression in bytes per second
+< incoming firewall access
+< incoming overhead in bytes per second
 < integrity
 < invalid input for dpd delay
 < invalid input for dpd timeout
+< invalid input for valid till days
 < ipsec
 < ipsec network
 < ipsec no connections
@@ -729,11 +990,40 @@
 < least preferred
 < lifetime
 < mac filter
+< masquerade blue
+< masquerade green
+< masquerade orange
+< masquerading
+< masquerading disabled
+< masquerading enabled
 < maximum
+< MB read
+< MB written
+< messages
 < minimum
 < minute
+< model
+< modem hardware details
+< modem information
+< modem network bit error rate
+< modem network information
+< modem network mode
+< modem network operator
+< modem network registration
+< modem network signal quality
+< modem no connection
+< modem no connection message
+< modem sim information
+< modem status
+< monitor interface
 < most preferred
+< MTU settings
+< nameserver
+< never
+< no hardware random number generator
+< not a valid dh key
 < notice
+< Number of Countries for the pie chart
 < openvpn default
 < openvpn destination port used
 < openvpn disabled
@@ -747,6 +1037,8 @@
 < openvpn subnet is used
 < other
 < our donors
+< outgoing compression in bytes per second
+< outgoing firewall access
 < outgoing firewall add ip group
 < outgoing firewall add mac group
 < outgoing firewall edit ip group
@@ -761,8 +1053,19 @@
 < outgoing firewall p2p description 2
 < outgoing firewall p2p description 3
 < outgoing firewall view group
+< outgoing overhead in bytes per second
+< ovpn add conf
+< ovpn crypt options
+< ovpn dh
+< ovpn dh new key
+< ovpn dh parameters
+< ovpn dh upload
+< ovpn engines
 < ovpn errmsg green already pushed
 < ovpn errmsg invalid ip or mask
+< ovpn generating the root and host certificates
+< ovpn ha
+< ovpn hmac
 < ovpn mgmt in root range
 < ovpn mtu-disc
 < ovpn mtu-disc and mtu not 1500
@@ -773,24 +1076,39 @@
 < ovpn mtu-disc yes
 < ovpn no connections
 < ovpn port in root range
+< ovpn reneg sec
 < ovpn routes push
 < ovpn routes push options
 < p2p block
 < p2p block save notice
+< pptp netconfig
+< pptp peer
+< pptp route
 < proxy reports
 < proxy reports daily
 < proxy reports monthly
 < proxy reports today
 < proxy reports weekly
 < qos enter bandwidths
+< random number generator daemon
 < red1
+< required field
+< samba join a domain
+< samba join domain
+< search
 < server restart
 < Set time on boot
+< show dh
 < snat new source ip address
+< software version
+< source ip country
 < ssh
 < static routes
 < support donation
+< system has hwrng
+< system has rdrand
 < system information
+< ta key
 < tor
 < tor 0 = disabled
 < tor accounting
@@ -844,13 +1162,21 @@
 < tor traffic limit soft
 < tor traffic read written
 < tor use exit nodes
+< unblock
+< unblock all
+< uncheck all
 < updxlrtr sources
 < updxlrtr standard view
+< uplink
+< upload dh key
 < uptime
 < uptime load average
 < urlfilter redirect template
+< vendor
 < visit us at
 < vpn keyexchange
+< vpn statistic n2n
+< vpn statistic rw
 < wlanap country
 < wlan client
 < wlan client advanced settings
@@ -884,24 +1210,33 @@
 < wlan client wpa mode ccmp tkip
 < wlan client wpa mode tkip tkip
 ############################################################################
-# Checking install/setup translations for language: pl                     #
-############################################################################
-############################################################################
 # Checking cgi-bin translations for language: pl                           #
 ############################################################################
 < addon
+< administrator password
+< administrator username
+< adsl settings
+< advproxy AUTH method ntlm
+< advproxy AUTH method ntlm auth
+< advproxy basic authentication
 < advproxy cache-digest
 < advproxy errmsg cache
 < advproxy errmsg invalid upstream proxy
 < advproxy errmsg proxy ports equal
+< advproxy group access control
+< advproxy group required
 < advproxy proxy port transparent
 < age second
 < age seconds
 < age shour
 < age sminute
 < age ssecond
+< application layer gateways
+< atm device
 < attention
 < bit
+< block
+< capabilities
 < ccd add
 < ccd choose net
 < ccd clientip
@@ -916,6 +1251,8 @@
 < ccd err iroute
 < ccd err irouteexist
 < ccd err isipsecnet
+< ccd err isipsecrw
+< ccd err isovpnn2n
 < ccd err isovpnnet
 < ccd err issubnet
 < ccd err name
@@ -940,8 +1277,30 @@
 < ccd routes
 < ccd subnet
 < ccd used
+< check all
+< ConnSched dial
+< ConnSched hangup
+< ConnSched reboot
+< ConnSched shutdown
+< count
+< countries
+< countrycode
+< country codes and flags
+< default
 < default ip
 < deprecated fs warn
+< details
+< dh
+< dhcp dns enable update
+< dhcp dns key name
+< dhcp dns update
+< dhcp dns update algo
+< dhcp dns update secret
+< dh key move failed
+< dh key warn
+< dh key warn1
+< dh parameter
+< dl client arch insecure
 < dnat address
 < dnsforward
 < dnsforward add a new entry
@@ -950,6 +1309,14 @@
 < dnsforward entries
 < dnsforward forward_server
 < dnsforward zone
+< dnssec aware
+< dnssec information
+< dnssec not supported
+< dnssec validating
+< dns servers
+< downlink
+< download dh parameter
+< download tls-auth key
 < dpd delay
 < dpd timeout
 < drop action
@@ -957,8 +1324,29 @@
 < drop action2
 < drop forward
 < drop outgoing
+< email config
+< email empty field
+< email error
+< email invalid
+< email invalid mailfqdn
+< email invalid mailip
+< email invalid mailport
+< email mailaddr
+< email mailpass
+< email mailport
+< email mailrcpt
+< email mailsender
+< email mailuser
+< email settings
+< email subject
+< email success
+< email testmail
+< email text
+< email tls
+< email usemail
 < encryption
 < entropy
+< entropy graphs
 < extrahd because there is already a device mounted
 < extrahd cant umount
 < extrahd install or load driver
@@ -968,8 +1356,10 @@
 < extrahd unable to read
 < extrahd unable to write
 < extrahd you cant mount
+< firewall logs country
 < firewall rules
 < first
+< flag
 < forward firewall
 < fw default drop
 < fwdfw ACCEPT
@@ -988,12 +1378,14 @@
 < fwdfw dnat porterr2
 < fwdfw DROP
 < fwdfw edit
+< fwdfw err concon
 < fwdfw err nosrc
 < fwdfw err nosrcip
 < fwdfw err notgt
 < fwdfw err notgtip
 < fwdfw err prot_port
 < fwdfw err prot_port1
+< fwdfw err ratecon
 < fwdfw err remark
 < fwdfw err ruleexists
 < fwdfw err same
@@ -1012,9 +1404,12 @@
 < fwdfw hint mac
 < fwdfw iface
 < fwdfw ipsec network
+< fwdfw limitconcon
 < fwdfw log
 < fwdfw log rule
 < fwdfw man port
+< fwdfw many
+< fwdfw maxconcon
 < fwdfw menu
 < fwdfw MODE1
 < fwdfw MODE2
@@ -1022,6 +1417,7 @@
 < fwdfw moveup
 < fwdfw natport used
 < fwdfw newrule
+< fwdfw numcon
 < fwdfw p2p txt
 < fwdfw pol allow
 < fwdfw pol block
@@ -1030,6 +1426,7 @@
 < fwdfw pol title
 < fwdfw prot41
 < fwdfw prot41 short
+< fwdfw ratelimit
 < fwdfw red
 < fwdfw REJECT
 < fwdfw reread
@@ -1052,6 +1449,7 @@
 < fwdfw use nat
 < fwdfw use srcport
 < fwdfw use srv
+< fwdfw warn1
 < fwdfw wd_fri
 < fwdfw wd_mon
 < fwdfw wd_sat
@@ -1060,6 +1458,7 @@
 < fwdfw wd_tue
 < fwdfw wd_wed
 < fwdfw xt access
+< fwhost addgeoipgrp
 < fwhost addgrp
 < fwhost addgrpname
 < fwhost addhost
@@ -1075,8 +1474,13 @@
 < fwhost change
 < fwhost changeremark
 < fwhost cust addr
+< fwhost cust geoip
+< fwhost cust geoipgroup
+< fwhost cust geoiplocation
 < fwhost cust grp
 < fwhost cust net
+< fwhost Custom Host
+< fwhost Custom Network
 < fwhost cust service
 < fwhost cust srvgrp
 < fwhost deleted
@@ -1118,14 +1522,20 @@
 < fwhost ipadr
 < fwhost ip_mac
 < fwhost ipsec host
+< fwhost IpSec Host
 < fwhost ipsec net
+< fwhost IpSec Network
 < fwhost menu
 < fwhost netaddress
+< fwhost newgeoipgrp
 < fwhost newgrp
 < fwhost newhost
 < fwhost newnet
 < fwhost newservice
 < fwhost newservicegrp
+< fwhost OpenVPN N-2-N
+< fwhost OpenVPN static host
+< fwhost OpenVPN static network
 < fwhost orange
 < fwhost ovpn_n2n
 < fwhost port
@@ -1134,6 +1544,7 @@
 < fwhost reset
 < fwhost services
 < fwhost srv_name
+< fwhost Standard Network
 < fwhost stdnet
 < fwhost type
 < fwhost used
@@ -1144,10 +1555,29 @@
 < fw settings dropdown
 < fw settings remark
 < fw settings ruletable
+< gen dh
+< generate dh key
+< geoip
+< geoipblock
+< geoipblock block countries
+< geoipblock configuration
+< geoipblock country code
+< geoipblock country is allowed
+< geoipblock country is blocked
+< geoipblock country name
+< geoipblock enable feature
+< geoipblock flag
 < grouptype
+< hardware support
+< imei
+< imsi
+< incoming compression in bytes per second
+< incoming firewall access
+< incoming overhead in bytes per second
 < integrity
 < invalid input for dpd delay
 < invalid input for dpd timeout
+< invalid input for valid till days
 < ipsec
 < ipsec network
 < ipsec no connections
@@ -1155,11 +1585,40 @@
 < least preferred
 < lifetime
 < mac filter
+< masquerade blue
+< masquerade green
+< masquerade orange
+< masquerading
+< masquerading disabled
+< masquerading enabled
 < maximum
+< MB read
+< MB written
+< messages
 < minimum
 < minute
+< model
+< modem hardware details
+< modem information
+< modem network bit error rate
+< modem network information
+< modem network mode
+< modem network operator
+< modem network registration
+< modem network signal quality
+< modem no connection
+< modem no connection message
+< modem sim information
+< modem status
+< monitor interface
 < most preferred
+< MTU settings
+< nameserver
+< never
+< no hardware random number generator
+< not a valid dh key
 < notice
+< Number of Countries for the pie chart
 < openvpn default
 < openvpn destination port used
 < openvpn disabled
@@ -1173,8 +1632,21 @@
 < openvpn subnet is used
 < other
 < our donors
+< outgoing compression in bytes per second
+< outgoing firewall access
+< outgoing overhead in bytes per second
+< ovpn add conf
+< ovpn crypt options
+< ovpn dh
+< ovpn dh new key
+< ovpn dh parameters
+< ovpn dh upload
+< ovpn engines
 < ovpn errmsg green already pushed
 < ovpn errmsg invalid ip or mask
+< ovpn generating the root and host certificates
+< ovpn ha
+< ovpn hmac
 < ovpn mgmt in root range
 < ovpn mtu-disc
 < ovpn mtu-disc and mtu not 1500
@@ -1185,22 +1657,37 @@
 < ovpn mtu-disc yes
 < ovpn no connections
 < ovpn port in root range
+< ovpn reneg sec
 < ovpn routes push
 < ovpn routes push options
 < p2p block
 < p2p block save notice
+< pptp netconfig
+< pptp peer
+< pptp route
 < proxy reports
 < proxy reports daily
 < proxy reports monthly
 < proxy reports today
 < proxy reports weekly
 < qos enter bandwidths
+< random number generator daemon
 < red1
+< required field
+< samba join a domain
+< samba join domain
+< search
 < server restart
+< show dh
 < snat new source ip address
+< software version
+< source ip country
 < ssh
 < static routes
 < support donation
+< system has hwrng
+< system has rdrand
+< ta key
 < tor
 < tor 0 = disabled
 < tor accounting
@@ -1254,13 +1741,21 @@
 < tor traffic limit soft
 < tor traffic read written
 < tor use exit nodes
+< unblock
+< unblock all
+< uncheck all
 < updxlrtr sources
 < updxlrtr standard view
+< uplink
+< upload dh key
 < uptime
 < uptime load average
 < urlfilter redirect template
+< vendor
 < visit us at
 < vpn keyexchange
+< vpn statistic n2n
+< vpn statistic rw
 < wlanap country
 < wlan client
 < wlan client advanced settings
@@ -1294,25 +1789,34 @@
 < wlan client wpa mode ccmp tkip
 < wlan client wpa mode tkip tkip
 ############################################################################
-# Checking install/setup translations for language: ru                     #
-############################################################################
-############################################################################
 # Checking cgi-bin translations for language: ru                           #
 ############################################################################
 < Add a route
 < addon
+< administrator password
+< administrator username
+< adsl settings
+< advproxy AUTH method ntlm
+< advproxy AUTH method ntlm auth
+< advproxy basic authentication
 < advproxy cache-digest
 < advproxy errmsg cache
 < advproxy errmsg invalid upstream proxy
 < advproxy errmsg proxy ports equal
+< advproxy group access control
+< advproxy group required
 < advproxy proxy port transparent
 < age second
 < age seconds
 < age shour
 < age sminute
 < age ssecond
+< application layer gateways
+< atm device
 < attention
 < bit
+< block
+< capabilities
 < ccd add
 < ccd choose net
 < ccd clientip
@@ -1327,6 +1831,8 @@
 < ccd err iroute
 < ccd err irouteexist
 < ccd err isipsecnet
+< ccd err isipsecrw
+< ccd err isovpnn2n
 < ccd err isovpnnet
 < ccd err issubnet
 < ccd err name
@@ -1351,10 +1857,32 @@
 < ccd routes
 < ccd subnet
 < ccd used
+< check all
+< ConnSched dial
+< ConnSched hangup
+< ConnSched reboot
+< ConnSched shutdown
+< count
+< countries
+< countrycode
+< country codes and flags
 < day-graph
+< default
 < default ip
 < deprecated fs warn
+< details
+< dh
+< dhcp dns enable update
+< dhcp dns key name
+< dhcp dns update
+< dhcp dns update algo
+< dhcp dns update secret
+< dh key move failed
+< dh key warn
+< dh key warn1
+< dh parameter
 < disk access per
+< dl client arch insecure
 < dnat address
 < dnsforward
 < dnsforward add a new entry
@@ -1363,6 +1891,14 @@
 < dnsforward entries
 < dnsforward forward_server
 < dnsforward zone
+< dnssec aware
+< dnssec information
+< dnssec not supported
+< dnssec validating
+< dns servers
+< downlink
+< download dh parameter
+< download tls-auth key
 < dpd delay
 < dpd timeout
 < drop action
@@ -1371,8 +1907,29 @@
 < drop forward
 < drop outgoing
 < Edit an existing route
+< email config
+< email empty field
+< email error
+< email invalid
+< email invalid mailfqdn
+< email invalid mailip
+< email invalid mailport
+< email mailaddr
+< email mailpass
+< email mailport
+< email mailrcpt
+< email mailsender
+< email mailuser
+< email settings
+< email subject
+< email success
+< email testmail
+< email text
+< email tls
+< email usemail
 < encryption
 < entropy
+< entropy graphs
 < extrahd because there is already a device mounted
 < extrahd cant umount
 < extrahd install or load driver
@@ -1382,8 +1939,10 @@
 < extrahd unable to read
 < extrahd unable to write
 < extrahd you cant mount
+< firewall logs country
 < firewall rules
 < first
+< flag
 < forward firewall
 < frequency
 < fw default drop
@@ -1403,12 +1962,14 @@
 < fwdfw dnat porterr2
 < fwdfw DROP
 < fwdfw edit
+< fwdfw err concon
 < fwdfw err nosrc
 < fwdfw err nosrcip
 < fwdfw err notgt
 < fwdfw err notgtip
 < fwdfw err prot_port
 < fwdfw err prot_port1
+< fwdfw err ratecon
 < fwdfw err remark
 < fwdfw err ruleexists
 < fwdfw err same
@@ -1427,9 +1988,12 @@
 < fwdfw hint mac
 < fwdfw iface
 < fwdfw ipsec network
+< fwdfw limitconcon
 < fwdfw log
 < fwdfw log rule
 < fwdfw man port
+< fwdfw many
+< fwdfw maxconcon
 < fwdfw menu
 < fwdfw MODE1
 < fwdfw MODE2
@@ -1437,6 +2001,7 @@
 < fwdfw moveup
 < fwdfw natport used
 < fwdfw newrule
+< fwdfw numcon
 < fwdfw p2p txt
 < fwdfw pol allow
 < fwdfw pol block
@@ -1445,6 +2010,7 @@
 < fwdfw pol title
 < fwdfw prot41
 < fwdfw prot41 short
+< fwdfw ratelimit
 < fwdfw red
 < fwdfw REJECT
 < fwdfw reread
@@ -1467,6 +2033,7 @@
 < fwdfw use nat
 < fwdfw use srcport
 < fwdfw use srv
+< fwdfw warn1
 < fwdfw wd_fri
 < fwdfw wd_mon
 < fwdfw wd_sat
@@ -1475,6 +2042,7 @@
 < fwdfw wd_tue
 < fwdfw wd_wed
 < fwdfw xt access
+< fwhost addgeoipgrp
 < fwhost addgrp
 < fwhost addgrpname
 < fwhost addhost
@@ -1490,8 +2058,13 @@
 < fwhost change
 < fwhost changeremark
 < fwhost cust addr
+< fwhost cust geoip
+< fwhost cust geoipgroup
+< fwhost cust geoiplocation
 < fwhost cust grp
 < fwhost cust net
+< fwhost Custom Host
+< fwhost Custom Network
 < fwhost cust service
 < fwhost cust srvgrp
 < fwhost deleted
@@ -1533,14 +2106,20 @@
 < fwhost ipadr
 < fwhost ip_mac
 < fwhost ipsec host
+< fwhost IpSec Host
 < fwhost ipsec net
+< fwhost IpSec Network
 < fwhost menu
 < fwhost netaddress
+< fwhost newgeoipgrp
 < fwhost newgrp
 < fwhost newhost
 < fwhost newnet
 < fwhost newservice
 < fwhost newservicegrp
+< fwhost OpenVPN N-2-N
+< fwhost OpenVPN static host
+< fwhost OpenVPN static network
 < fwhost orange
 < fwhost ovpn_n2n
 < fwhost port
@@ -1549,6 +2128,7 @@
 < fwhost reset
 < fwhost services
 < fwhost srv_name
+< fwhost Standard Network
 < fwhost stdnet
 < fwhost type
 < fwhost used
@@ -1559,12 +2139,31 @@
 < fw settings dropdown
 < fw settings remark
 < fw settings ruletable
+< gen dh
+< generate dh key
+< geoip
+< geoipblock
+< geoipblock block countries
+< geoipblock configuration
+< geoipblock country code
+< geoipblock country is allowed
+< geoipblock country is blocked
+< geoipblock country name
+< geoipblock enable feature
+< geoipblock flag
 < grouptype
+< hardware support
 < hour-graph
+< imei
+< imsi
+< incoming compression in bytes per second
+< incoming firewall access
+< incoming overhead in bytes per second
 < incoming traffic in bytes per second
 < integrity
 < invalid input for dpd delay
 < invalid input for dpd timeout
+< invalid input for valid till days
 < ipsec
 < ipsec network
 < ipsec no connections
@@ -1572,12 +2171,41 @@
 < least preferred
 < lifetime
 < mac filter
+< masquerade blue
+< masquerade green
+< masquerade orange
+< masquerading
+< masquerading disabled
+< masquerading enabled
 < maximum
+< MB read
+< MB written
+< messages
 < minimum
 < minute
+< model
+< modem hardware details
+< modem information
+< modem network bit error rate
+< modem network information
+< modem network mode
+< modem network operator
+< modem network registration
+< modem network signal quality
+< modem no connection
+< modem no connection message
+< modem sim information
+< modem status
+< monitor interface
 < month-graph
 < most preferred
+< MTU settings
+< nameserver
+< never
+< no hardware random number generator
+< not a valid dh key
 < notice
+< Number of Countries for the pie chart
 < openvpn default
 < openvpn destination port used
 < openvpn disabled
@@ -1591,7 +2219,20 @@
 < openvpn subnet is used
 < other
 < our donors
+< outgoing compression in bytes per second
+< outgoing firewall access
+< outgoing overhead in bytes per second
 < outgoing traffic in bytes per second
+< ovpn add conf
+< ovpn crypt options
+< ovpn dh
+< ovpn dh new key
+< ovpn dh parameters
+< ovpn dh upload
+< ovpn engines
+< ovpn generating the root and host certificates
+< ovpn ha
+< ovpn hmac
 < ovpn mgmt in root range
 < ovpn mtu-disc
 < ovpn mtu-disc and mtu not 1500
@@ -1602,20 +2243,35 @@
 < ovpn mtu-disc yes
 < ovpn no connections
 < ovpn port in root range
+< ovpn reneg sec
 < p2p block
 < p2p block save notice
+< pptp netconfig
+< pptp peer
+< pptp route
 < proxy reports
 < proxy reports daily
 < proxy reports monthly
 < proxy reports today
 < proxy reports weekly
 < qos enter bandwidths
+< random number generator daemon
 < red1
+< required field
+< samba join a domain
+< samba join domain
+< search
 < server restart
+< show dh
 < snat new source ip address
+< software version
+< source ip country
 < ssh
 < static routes
 < support donation
+< system has hwrng
+< system has rdrand
+< ta key
 < tor
 < tor 0 = disabled
 < tor accounting
@@ -1669,13 +2325,21 @@
 < tor traffic limit soft
 < tor traffic read written
 < tor use exit nodes
+< unblock
+< unblock all
+< uncheck all
 < updxlrtr sources
 < updxlrtr standard view
+< uplink
+< upload dh key
 < uptime
 < uptime load average
 < urlfilter redirect template
+< vendor
 < visit us at
 < vpn keyexchange
+< vpn statistic n2n
+< vpn statistic rw
 < week-graph
 < wlanap country
 < wlan client

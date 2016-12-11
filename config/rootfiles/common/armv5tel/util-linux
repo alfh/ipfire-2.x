@@ -72,9 +72,9 @@ usr/bin/renice
 #usr/bin/script
 #usr/bin/scriptreplay
 #usr/bin/setarch
-#usr/bin/setsid
+usr/bin/setsid
 #usr/bin/setterm
-#usr/bin/tailf
+usr/bin/tailf
 #usr/bin/taskset
 #usr/bin/ul
 #usr/bin/unshare
@@ -233,6 +233,7 @@ usr/sbin/rtcwake
 #usr/share/man/man1/ipcmk.1
 #usr/share/man/man1/ipcrm.1
 #usr/share/man/man1/ipcs.1
+#usr/share/man/man1/logger.1
 #usr/share/man/man1/look.1
 #usr/share/man/man1/lscpu.1
 #usr/share/man/man1/mcookie.1

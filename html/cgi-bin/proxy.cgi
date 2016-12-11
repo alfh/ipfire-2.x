@@ -27,6 +27,7 @@
 #
 
 use strict;
+use Apache::Htpasswd;
 
 # enable only the following on debugging purpose
 #use warnings;
@@ -172,6 +173,8 @@ unless (-e $acl_include) { system("touch $acl_include"); }
 unless (-e $browserdb) { system("touch $browserdb"); }
 unless (-e $mimetypes) { system("touch $mimetypes"); }
 
+my $HAVE_NTLM_AUTH = (-e "/usr/bin/ntlm_auth");
+
 open FILE, $browserdb;
 @useragentlist = sort { reverse(substr(reverse(substr($a,index($a,',')+1)),index(reverse(substr($a,index($a,','))),',')+1)) cmp reverse(substr(reverse(substr($b,index($b,',')+1)),index(reverse(substr($b,index($b,','))),',')+1))} grep !/(^$)|(^\s*#)/,<FILE>;
 close(FILE);
@@ -264,6 +267,8 @@ $proxysettings{'LDAP_PORT'} = '389';
 $proxysettings{'LDAP_BINDDN_USER'} = '';
 $proxysettings{'LDAP_BINDDN_PASS'} = '';
 $proxysettings{'LDAP_GROUP'} = '';
+$proxysettings{'NTLM_AUTH_GROUP'} = '';
+$proxysettings{'NTLM_AUTH_BASIC'} = 'off';
 $proxysettings{'NTLM_DOMAIN'} = '';
 $proxysettings{'NTLM_PDC'} = '';
 $proxysettings{'NTLM_BDC'} = '';
@@ -860,6 +865,7 @@ $checked{'AUTH_METHOD'}{'ncsa'} = '';
 $checked{'AUTH_METHOD'}{'ident'} = '';
 $checked{'AUTH_METHOD'}{'ldap'} = '';
 $checked{'AUTH_METHOD'}{'ntlm'} = '';
+$checked{'AUTH_METHOD'}{'ntlm-auth'} = '';
 $checked{'AUTH_METHOD'}{'radius'} = '';
 $checked{'AUTH_METHOD'}{$proxysettings{'AUTH_METHOD'}} = "checked='checked'";
 
@@ -890,6 +896,10 @@ $checked{'NTLM_ENABLE_ACL'}{$proxysettings{'NTLM_ENABLE_ACL'}} = "checked='check
 $checked{'NTLM_USER_ACL'}{'positive'} = '';
 $checked{'NTLM_USER_ACL'}{'negative'} = '';
 $checked{'NTLM_USER_ACL'}{$proxysettings{'NTLM_USER_ACL'}} = "checked='checked'";
+
+$checked{'NTLM_AUTH_BASIC'}{'on'} = '';
+$checked{'NTLM_AUTH_BASIC'}{'off'} = '';
+$checked{'NTLM_AUTH_BASIC'}{$proxysettings{'NTLM_AUTH_BASIC'}} = "checked='checked'";
 
 $checked{'RADIUS_ENABLE_ACL'}{'off'} = '';
 $checked{'RADIUS_ENABLE_ACL'}{'on'} = '';
@@ -960,13 +970,13 @@ print <<END
 <tr>
 	<td width='25%' class='base'>$Lang::tr{'advproxy enabled on'} <font color="$Header::colourgreen">Green</font>:</td>
 	<td width='20%'><input type='checkbox' name='ENABLE' $checked{'ENABLE'}{'on'} /></td>
-	<td width='25%' class='base'>$Lang::tr{'advproxy proxy port'}:</td>
+	<td width='25%' class='base'>$Lang::tr{'advproxy proxy port'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td width='30%'><input type='text' name='PROXY_PORT' value='$proxysettings{'PROXY_PORT'}' size='5' /></td>
 </tr>
 <tr>
 	<td class='base'>$Lang::tr{'advproxy transparent on'} <font color="$Header::colourgreen">Green</font>:</td>
 	<td><input type='checkbox' name='TRANSPARENT' $checked{'TRANSPARENT'}{'on'} /></td>
-	<td width='25%' class='base'>$Lang::tr{'advproxy proxy port transparent'}:</td>
+	<td width='25%' class='base'>$Lang::tr{'advproxy proxy port transparent'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td width='30%'><input type='text' name='TRANSPARENT_PORT' value='$proxysettings{'TRANSPARENT_PORT'}' size='5' /></td>
 </tr>
 <tr>
@@ -979,7 +989,7 @@ if ($netsettings{'BLUE_DEV'}) {
 	print "<td colspan='2'>&nbsp;</td>";
 }
 print <<END
-	<td class='base'>$Lang::tr{'advproxy visible hostname'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy visible hostname'}:</td>
 	<td><input type='text' name='VISIBLE_HOSTNAME' value='$proxysettings{'VISIBLE_HOSTNAME'}' /></td>
 </tr>
 <tr>
@@ -1026,7 +1036,7 @@ print <<END
 <hr size='1'>
 <table width='100%'>
 <tr><td class='base' colspan='4'><b>$Lang::tr{'advproxy redirector children'}</b></td></tr>
-<tr><td class='base' >$Lang::tr{'processes'}<input type='text' name='CHILDREN' value='$proxysettings{'CHILDREN'}' size='5' /></td>
+<tr><td class='base' >$Lang::tr{'processes'}:&nbsp;<img src='/blob.gif' alt='*' /><input type='text' name='CHILDREN' value='$proxysettings{'CHILDREN'}' size='5' /></td>
 END
 ;
 my $count = `ip n| wc -l`;
@@ -1062,19 +1072,19 @@ print <<END
 <tr>
 	<td width='25%' class='base'>$Lang::tr{'advproxy via forwarding'}:</td>
 	<td width='20%'><input type='checkbox' name='FORWARD_VIA' $checked{'FORWARD_VIA'}{'on'} /></td>
-	<td width='25%' class='base'>$Lang::tr{'advproxy upstream proxy host:port'}&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td width='25%' class='base'>$Lang::tr{'advproxy upstream proxy host:port'}:</td>
 	<td width='30%'><input type='text' name='UPSTREAM_PROXY' value='$proxysettings{'UPSTREAM_PROXY'}' /></td>
 </tr>
 <tr>
 	<td class='base'>$Lang::tr{'advproxy client IP forwarding'}:</td>
 	<td><input type='checkbox' name='FORWARD_IPADDRESS' $checked{'FORWARD_IPADDRESS'}{'on'} /></td>
-	<td class='base'>$Lang::tr{'advproxy upstream username'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy upstream username'}:</td>
 	<td><input type='text' name='UPSTREAM_USER' value='$proxysettings{'UPSTREAM_USER'}' /></td>
 </tr>
 <tr>
 	<td class='base'>$Lang::tr{'advproxy username forwarding'}:</td>
 	<td><input type='checkbox' name='FORWARD_USERNAME' $checked{'FORWARD_USERNAME'}{'on'} /></td>
-	<td class='base'>$Lang::tr{'advproxy upstream password'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy upstream password'}:</td>
 	<td><input type='password' name='UPSTREAM_PASSWORD' value='$proxysettings{'UPSTREAM_PASSWORD'}' /></td>
 </tr>
 <tr>
@@ -1110,28 +1120,28 @@ print <<END
 <tr>
 	<td class='base'>$Lang::tr{'proxy cachemgr'}:</td>
 	<td><input type='checkbox' name='CACHEMGR' $checked{'CACHEMGR'}{'on'} /></td>
-	<td class='base'>$Lang::tr{'advproxy admin mail'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy admin mail'}:</td>
 	<td><input type='text' name='ADMIN_MAIL_ADDRESS' value='$proxysettings{'ADMIN_MAIL_ADDRESS'}' /></td>
 </tr>
 <tr>
-	<td class='base'>$Lang::tr{'proxy filedescriptors'}:</td>
+	<td class='base'>$Lang::tr{'proxy filedescriptors'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td><input type='text' name='FILEDESCRIPTORS' value='$proxysettings{'FILEDESCRIPTORS'}' size='5' /></td>
-	<td class='base'>$Lang::tr{'proxy admin password'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'proxy admin password'}:</td>
 	<td><input type='text' name='ADMIN_PASSWORD' value='$proxysettings{'ADMIN_PASSWORD'}' /></td>
 </tr>
 <tr>
 	<td width='25%'></td> <td width='20%'> </td><td width='25%'> </td><td width='30%'></td>
 </tr>
 <tr>
-	<td class='base'>$Lang::tr{'advproxy ram cache size'}:</td>
+	<td class='base'>$Lang::tr{'advproxy ram cache size'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td><input type='text' name='CACHE_MEM' value='$proxysettings{'CACHE_MEM'}' size='5' /></td>
-	<td class='base'>$Lang::tr{'advproxy hdd cache size'}:</td>
+	<td class='base'>$Lang::tr{'advproxy hdd cache size'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td><input type='text' name='CACHE_SIZE' value='$proxysettings{'CACHE_SIZE'}' size='5' /></td>
 </tr>
 <tr>
-	<td class='base'>$Lang::tr{'advproxy min size'}:</td>
+	<td class='base'>$Lang::tr{'advproxy min size'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td><input type='text' name='MIN_SIZE' value='$proxysettings{'MIN_SIZE'}' size='5' /></td>
-	<td class='base'>$Lang::tr{'advproxy max size'}:</td>
+	<td class='base'>$Lang::tr{'advproxy max size'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td><input type='text' name='MAX_SIZE' value='$proxysettings{'MAX_SIZE'}' size='5' /></td>
 </tr>
 <tr>
@@ -1149,7 +1159,7 @@ print <<END
 				<!-- intentionally left empty -->
 			</tr>
 			<tr>
-			<td>$Lang::tr{'advproxy no cache sites'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+			<td>$Lang::tr{'advproxy no cache sites'}:</td>
 			</tr>
 			<tr>
 				<!-- intentionally left empty -->
@@ -1209,8 +1219,8 @@ print <<END
 	<td width='25%' align='center'></td> <td width='20%' align='center'></td><td width='25%' align='center'></td><td width='30%' align='center'></td>
 </tr>
 <tr>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy standard ports'}:</td>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy ssl ports'}:</td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy standard ports'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy ssl ports'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 </tr>
 <tr>
 	<td colspan='2'><textarea name='PORTS_SAFE' cols='32' rows='6' wrap='off'>
@@ -1238,7 +1248,7 @@ print <<END
 	<td width='25%'></td> <td width='20%'> </td><td width='25%'> </td><td width='30%'></td>
 </tr>
 <tr>
-	<td colspan='4' class='base'>$Lang::tr{'advproxy allowed subnets'}:</td>
+	<td colspan='4' class='base'>$Lang::tr{'advproxy allowed subnets'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 </tr>
 <tr>
 	<td colspan='2' rowspan='4'><textarea name='SRC_SUBNETS' cols='32' rows='3' wrap='off'>
@@ -1291,8 +1301,8 @@ print <<END
 	<td width='25%'></td> <td width='20%'> </td><td width='25%'> </td><td width='30%'></td>
 </tr>
 <tr>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy unrestricted ip clients'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy unrestricted mac clients'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy unrestricted ip clients'}:</td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy unrestricted mac clients'}:</td>
 </tr>
 <tr>
 	<td colspan='2'><textarea name='SRC_UNRESTRICTED_IP' cols='32' rows='3' wrap='off'>
@@ -1318,8 +1328,8 @@ print <<END
 	<td width='25%'></td> <td width='20%'> </td><td width='25%'> </td><td width='30%'></td>
 </tr>
 <tr>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy banned ip clients'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy banned mac clients'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy banned ip clients'}:</td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy banned mac clients'}:</td>
 </tr>
 <tr>
 	<td colspan='2'><textarea name='SRC_BANNED_IP' cols='32' rows='3' wrap='off'>
@@ -1364,12 +1374,12 @@ END
 ;
 if ($proxysettings{'CLASSROOM_EXT'} eq 'on'){
 print <<END
-	<td class='base'>$Lang::tr{'advproxy supervisor password'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy supervisor password'}:</td>
 	<td><input type='password' name='SUPERVISOR_PASSWORD' value='$proxysettings{'SUPERVISOR_PASSWORD'}' size='12' /></td>
 </tr>
 <tr>
 	<td colspan='2' class='base'>$Lang::tr{'advproxy cre group definitions'}:</td>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy cre supervisors'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy cre supervisors'}:</td>
 END
 ;
 }
@@ -1503,9 +1513,9 @@ print <<END
 	<td colspan='4'><b>$Lang::tr{'advproxy transfer limits'}</b></td>
 </tr>
 <tr>
-	<td width='25%' class='base'>$Lang::tr{'advproxy max download size'}:</td>
+	<td width='25%' class='base'>$Lang::tr{'advproxy max download size'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td width='20%'><input type='text' name='MAX_INCOMING_SIZE' value='$proxysettings{'MAX_INCOMING_SIZE'}' size='5' /></td>
-	<td width='25%' class='base'>$Lang::tr{'advproxy max upload size'}:</td>
+	<td width='25%' class='base'>$Lang::tr{'advproxy max upload size'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 	<td width='30%'><input type='text' name='MAX_OUTGOING_SIZE' value='$proxysettings{'MAX_OUTGOING_SIZE'}' size='5' /></td>
 </tr>
 </table>
@@ -1522,7 +1532,7 @@ END
 ;
 
 foreach (@throttle_limits) {
-	print "\t<option value='$_' $selected{'THROTTLING_GREEN_TOTAL'}{$_}>$_ kBit/s</option>\n";
+	print "\t<option value='$_' $selected{'THROTTLING_GREEN_TOTAL'}{$_}>$_ kbit/s</option>\n";
 }
 
 print <<END
@@ -1536,7 +1546,7 @@ END
 ;
 
 foreach (@throttle_limits) {
-	print "\t<option value='$_' $selected{'THROTTLING_GREEN_HOST'}{$_}>$_ kBit/s</option>\n";
+	print "\t<option value='$_' $selected{'THROTTLING_GREEN_HOST'}{$_}>$_ kbit/s</option>\n";
 }
 
 print <<END
@@ -1557,7 +1567,7 @@ END
 ;
 
 foreach (@throttle_limits) {
-	print "\t<option value='$_' $selected{'THROTTLING_BLUE_TOTAL'}{$_}>$_ kBit/s</option>\n";
+	print "\t<option value='$_' $selected{'THROTTLING_BLUE_TOTAL'}{$_}>$_ kbit/s</option>\n";
 }
 
 print <<END
@@ -1571,7 +1581,7 @@ END
 ;
 
 foreach (@throttle_limits) {
-	print "\t<option value='$_' $selected{'THROTTLING_BLUE_HOST'}{$_}>$_ kBit/s</option>\n";
+	print "\t<option value='$_' $selected{'THROTTLING_BLUE_HOST'}{$_}>$_ kbit/s</option>\n";
 }
 
 print <<END
@@ -1610,7 +1620,7 @@ END
 if ( $proxysettings{'ENABLE_MIME_FILTER'} eq 'on' ){
 print <<END
 <tr>
-	<td  colspan='2' class='base'>$Lang::tr{'advproxy MIME block types'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td  colspan='2' class='base'>$Lang::tr{'advproxy MIME block types'}:</td>
 	<td>&nbsp;</td>
 	<td>&nbsp;</td>
 </tr>
@@ -1674,8 +1684,8 @@ print <<END
 	<td><b>$Lang::tr{'advproxy privacy'}</b></td>
 </tr>
 <tr>
-	<td class='base'>$Lang::tr{'advproxy fake useragent'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
-	<td class='base'>$Lang::tr{'advproxy fake referer'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy fake useragent'}:</td>
+	<td class='base'>$Lang::tr{'advproxy fake referer'}:</td>
 </tr>
 <tr>
 	<td><input type='text' name='FAKE_USERAGENT' value='$proxysettings{'FAKE_USERAGENT'}' size='40%' /></td>
@@ -1686,18 +1696,33 @@ print <<END
 END
 ;
 
-print <<END
+my $auth_columns = 5;
+if ($HAVE_NTLM_AUTH) {
+	$auth_columns++;
+}
+my $auth_column_width = 100 / $auth_columns;
+
+print <<END;
 <table width='100%'>
 <tr>
-	<td colspan='5'><b>$Lang::tr{'advproxy AUTH method'}</b></td>
+	<td colspan='$auth_columns'><b>$Lang::tr{'advproxy AUTH method'}</b></td>
 </tr>
 <tr>
-	<td width='16%' class='base'><input type='radio' name='AUTH_METHOD' value='none' $checked{'AUTH_METHOD'}{'none'} />$Lang::tr{'advproxy AUTH method none'}</td>
-	<td width='16%' class='base'><input type='radio' name='AUTH_METHOD' value='ncsa' $checked{'AUTH_METHOD'}{'ncsa'} />$Lang::tr{'advproxy AUTH method ncsa'}</td>
-	<td width='16%' class='base'><input type='radio' name='AUTH_METHOD' value='ident' $checked{'AUTH_METHOD'}{'ident'} />$Lang::tr{'advproxy AUTH method ident'}</td>
-	<td width='16%' class='base'><input type='radio' name='AUTH_METHOD' value='ldap' $checked{'AUTH_METHOD'}{'ldap'} />$Lang::tr{'advproxy AUTH method ldap'}</td>
-	<td width='16%' class='base'><input type='radio' name='AUTH_METHOD' value='ntlm' $checked{'AUTH_METHOD'}{'ntlm'} />$Lang::tr{'advproxy AUTH method ntlm'}</td>
-	<td width='16%' class='base'><input type='radio' name='AUTH_METHOD' value='radius' $checked{'AUTH_METHOD'}{'radius'} />$Lang::tr{'advproxy AUTH method radius'}</td>
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='none' $checked{'AUTH_METHOD'}{'none'} />$Lang::tr{'advproxy AUTH method none'}</td>
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='ncsa' $checked{'AUTH_METHOD'}{'ncsa'} />$Lang::tr{'advproxy AUTH method ncsa'}</td>
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='ident' $checked{'AUTH_METHOD'}{'ident'} />$Lang::tr{'advproxy AUTH method ident'}</td>
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='ldap' $checked{'AUTH_METHOD'}{'ldap'} />$Lang::tr{'advproxy AUTH method ldap'}</td>
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='ntlm' $checked{'AUTH_METHOD'}{'ntlm'} />$Lang::tr{'advproxy AUTH method ntlm'}</td>
+END
+
+if ($HAVE_NTLM_AUTH) {
+	print <<END;
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='ntlm-auth' $checked{'AUTH_METHOD'}{'ntlm-auth'} />$Lang::tr{'advproxy AUTH method ntlm auth'}</td>
+END
+}
+
+print <<END
+	<td width='$auth_column_width%' class='base'><input type='radio' name='AUTH_METHOD' value='radius' $checked{'AUTH_METHOD'}{'radius'} />$Lang::tr{'advproxy AUTH method radius'}</td>
 </tr>
 </table>
 END
@@ -1718,7 +1743,7 @@ if (!($proxysettings{'AUTH_METHOD'} eq 'none')) { if (!($proxysettings{'AUTH_MET
 	<td colspan='2' rowspan= '6' valign='top' class='base'>
 		<table cellpadding='0' cellspacing='0'>
 			<tr>
-			<td class='base'>$Lang::tr{'advproxy AUTH realm'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+			<td class='base'>$Lang::tr{'advproxy AUTH realm'}:</td>
 			</tr>
 			<tr>
 				<!-- intentionally left empty -->
@@ -1736,7 +1761,7 @@ if (!($proxysettings{'AUTH_METHOD'} eq 'none')) { if (!($proxysettings{'AUTH_MET
 				<!-- intentionally left empty -->
 			</tr>
 			<tr>
-			<td>$Lang::tr{'advproxy AUTH no auth'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+			<td>$Lang::tr{'advproxy AUTH no auth'}:</td>
 			</tr>
 			<tr>
 				<!-- intentionally left empty -->
@@ -1762,7 +1787,7 @@ print <<END
 	<td><input type='text' name='AUTH_CACHE_TTL' value='$proxysettings{'AUTH_CACHE_TTL'}' size='5' /></td>
 </tr>
 <tr>
-	<td class='base'>$Lang::tr{'advproxy AUTH limit of IP addresses'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy AUTH limit of IP addresses'}:</td>
 	<td><input type='text' name='AUTH_MAX_USERIP' value='$proxysettings{'AUTH_MAX_USERIP'}' size='5' /></td>
 </tr>
 <tr>
@@ -1832,7 +1857,7 @@ print <<END
 </tr>
 <tr>
 	<td colspan='2' class='base'>$Lang::tr{'advproxy IDENT aware hosts'}:</td>
-	<td colspan='2' class='base'>$Lang::tr{'advproxy AUTH no auth'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td colspan='2' class='base'>$Lang::tr{'advproxy AUTH no auth'}:</td>
 </tr>
 <tr>
 	<td colspan='2'><textarea name='IDENT_HOSTS' cols='32' rows='6' wrap='off'>
@@ -1918,7 +1943,7 @@ print <<END
 	<td><input type='text' name='NTLM_DOMAIN' value='$proxysettings{'NTLM_DOMAIN'}' size='15' /></td>
 	<td class='base'>$Lang::tr{'advproxy NTLM PDC hostname'}:</td>
 	<td><input type='text' name='NTLM_PDC' value='$proxysettings{'NTLM_PDC'}' size='14' /></td>
-	<td class='base'>$Lang::tr{'advproxy NTLM BDC hostname'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy NTLM BDC hostname'}:</td>
 	<td><input type='text' name='NTLM_BDC' value='$proxysettings{'NTLM_BDC'}' size='14' /></td>
 </tr>
 </table>
@@ -1977,6 +2002,35 @@ END
 ; }
 
 # ===================================================================
+#  NTLM-AUTH settings
+# ===================================================================
+
+if ($proxysettings{'AUTH_METHOD'} eq 'ntlm-auth') {
+	print <<END;
+		<hr size ='1'>
+		<table width='100%'>
+			<td width='20%' class='base'>$Lang::tr{'advproxy basic authentication'}:</td>
+			<td width='40%'><input type='checkbox' name='NTLM_AUTH_BASIC' $checked{'NTLM_AUTH_BASIC'}{'on'} /></td>
+			<td colspan='2'>&nbsp;</td>
+		</table>
+
+		<hr size='1' />
+
+		<table width='100%'>
+			<tr>
+				<td colspan='4'><b>$Lang::tr{'advproxy group access control'}</b></td>
+			</tr>
+			<tr>
+				<td width='20%' class='base'>$Lang::tr{'advproxy group required'}:</td>
+				<td width='40%'><input type='text' name='NTLM_AUTH_GROUP' value='$proxysettings{'NTLM_AUTH_GROUP'}' size='37' /></td>
+				<td>&nbsp;</td>
+				<td>&nbsp;</td>
+			</tr>
+	</table>
+END
+}
+
+# ===================================================================
 #  LDAP auth settings
 # ===================================================================
 
@@ -2023,7 +2077,7 @@ print <<END
 	<td colspan='4'><b>$Lang::tr{'advproxy LDAP group access control'}</b></td>
 </tr>
 <tr>
-	<td width='20%' class='base'>$Lang::tr{'advproxy LDAP group required'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td width='20%' class='base'>$Lang::tr{'advproxy LDAP group required'}:</td>
 	<td width='40%'><input type='text' name='LDAP_GROUP' value='$proxysettings{'LDAP_GROUP'}' size='37' /></td>
 	<td>&nbsp;</td>
 	<td>&nbsp;</td>
@@ -2050,7 +2104,7 @@ print <<END
 	<td width='30%'><input type='text' name='RADIUS_PORT' value='$proxysettings{'RADIUS_PORT'}' size='3' /></td>
 </tr>
 <tr>
-	<td class='base'>$Lang::tr{'advproxy RADIUS identifier'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
+	<td class='base'>$Lang::tr{'advproxy RADIUS identifier'}:</td>
 	<td><input type='text' name='RADIUS_IDENTIFIER' value='$proxysettings{'RADIUS_IDENTIFIER'}' size='14' /></td>
 	<td class='base'>$Lang::tr{'advproxy RADIUS secret'}:</td>
 	<td><input type='password' name='RADIUS_SECRET' value='$proxysettings{'RADIUS_SECRET'}' size='14' /></td>
@@ -2206,9 +2260,7 @@ print <<END
 <br />
 <table width='100%'>
 <tr>
-	<td><img src='/blob.gif' align='top' alt='*' />&nbsp;
-	<font class='base'>$Lang::tr{'this field may be blank'}</font>
-	</td>
+	<td><img src='/blob.gif' align='top' alt='*' />&nbsp;<font class='base'>$Lang::tr{'required field'}</font></td>
 	<td align='right'>&nbsp;</td>
 </tr>
 </table>
@@ -2236,7 +2288,7 @@ print <<END
 	<td width='25%'><input type='text' name='NCSA_USERNAME' value='$proxysettings{'NCSA_USERNAME'}' size='12'
 END
 ;
-	if ($proxysettings{'ACTION'} eq $Lang::tr{'edit'}) { print " readonly "; }
+	if ($proxysettings{'ACTION'} eq $Lang::tr{'edit'}) { print " readonly='readonly' "; }
 	print <<END
 	 /></td>
 	<td width='25%' class='base'>$Lang::tr{'advproxy NCSA group'}:</td>
@@ -2972,11 +3024,23 @@ sub writepacfile
 		print FILE <<END
 if (
      (isPlainHostName(host)) ||
-     (dnsDomainIs(host, ".$mainsettings{'DOMAINNAME'}")) ||
      (isInNet(host, "127.0.0.1", "255.0.0.0")) ||
-     (isInNet(host, "10.0.0.0", "255.0.0.0")) ||
-     (isInNet(host, "172.16.0.0", "255.240.0.0")) ||
-     (isInNet(host, "192.168.0.0", "255.255.0.0")) ||
+END
+;
+
+	if ($netsettings{'GREEN_DEV'}) {
+		print FILE "     (isInNet(host, \"$netsettings{'GREEN_NETADDRESS'}\", \"$netsettings{'GREEN_NETMASK'}\")) ||\n";
+	}
+
+	if (&Header::blue_used() && $netsettings{'BLUE_DEV'}) {
+		print FILE "     (isInNet(host, \"$netsettings{'BLUE_NETADDRESS'}\", \"$netsettings{'BLUE_NETMASK'}\")) ||\n";
+	}
+
+	if (&Header::orange_used() && $netsettings{'ORANGE_DEV'}) {
+		print FILE "     (isInNet(host, \"$netsettings{'ORANGE_NETADDRESS'}\", \"$netsettings{'ORANGE_NETMASK'}\")) ||\n";
+	}
+
+	print FILE <<END
      (isInNet(host, "169.254.0.0", "255.255.0.0"))
    )
      return "DIRECT";
@@ -3131,7 +3195,6 @@ END
 	print FILE <<END
 
 cache_effective_user squid
-cache_effective_group squid
 umask 022
 
 pid_filename /var/run/squid.pid
@@ -3157,9 +3220,77 @@ END
 		print FILE "\n";
 	}
 
-	if ($proxysettings{'CACHE_SIZE'} ne '0')
+	open (PORTS,"$acl_ports_ssl");
+	my @ssl_ports = <PORTS>;
+	close PORTS;
+
+	if (@ssl_ports) {
+		foreach (@ssl_ports) {
+			print FILE "acl SSL_ports port $_";
+		}
+	}
+
+	open (PORTS,"$acl_ports_safe");
+	my @safe_ports = <PORTS>;
+	close PORTS;
+
+	if (@safe_ports) {
+		foreach (@safe_ports) {
+			print FILE "acl Safe_ports port $_";
+		}
+	}
+
+	print FILE <<END
+
+acl IPFire_http  port $http_port
+acl IPFire_https port $https_port
+acl IPFire_ips              dst $netsettings{'GREEN_ADDRESS'}
+acl IPFire_networks         src "$acl_src_subnets"
+acl IPFire_servers          dst "$acl_src_subnets"
+acl IPFire_green_network    src $green_cidr
+acl IPFire_green_servers    dst $green_cidr
+END
+	;
+	if ($netsettings{'BLUE_DEV'}) { print FILE "acl IPFire_blue_network     src $blue_cidr\n"; }
+	if ($netsettings{'BLUE_DEV'}) { print FILE "acl IPFire_blue_servers     dst $blue_cidr\n"; }
+	if (!-z $acl_src_banned_ip) { print FILE "acl IPFire_banned_ips       src \"$acl_src_banned_ip\"\n"; }
+	if (!-z $acl_src_banned_mac) { print FILE "acl IPFire_banned_mac       arp \"$acl_src_banned_mac\"\n"; }
+	if (!-z $acl_src_unrestricted_ip) { print FILE "acl IPFire_unrestricted_ips src \"$acl_src_unrestricted_ip\"\n"; }
+	if (!-z $acl_src_unrestricted_mac) { print FILE "acl IPFire_unrestricted_mac arp \"$acl_src_unrestricted_mac\"\n"; }
+	print FILE <<END
+acl CONNECT method CONNECT
+END
+	;
+
+	if ($proxysettings{'CACHE_SIZE'} > 0) {
+		print FILE <<END
+maximum_object_size $proxysettings{'MAX_SIZE'} KB
+minimum_object_size $proxysettings{'MIN_SIZE'} KB
+
+cache_dir aufs /var/log/cache $proxysettings{'CACHE_SIZE'} $proxysettings{'L1_DIRS'} 256
+END
+		;
+	} else {
+		print FILE "cache deny all\n\n";
+	}
+
+	print FILE <<END
+request_body_max_size $proxysettings{'MAX_OUTGOING_SIZE'} KB
+END
+	;
+
+	if ($proxysettings{'MAX_INCOMING_SIZE'} > 0) {
+		if (!-z $acl_src_unrestricted_ip) { print FILE "reply_body_max_size none IPFire_unrestricted_ips\n"; }
+		if (!-z $acl_src_unrestricted_mac) { print FILE "reply_body_max_size none IPFire_unrestricted_mac\n"; }
+		if ($proxysettings{'AUTH_METHOD'} eq 'ncsa')
+		{
+			if (!-z $extgrp) { print FILE "reply_body_max_size none for_extended_users\n"; }
+		}
+	}
+
+	if ( $proxysettings{'MAX_INCOMING_SIZE'} != '0' )
 	{
-		print FILE "cache_dir aufs /var/log/cache $proxysettings{'CACHE_SIZE'} $proxysettings{'L1_DIRS'} 256\n\n";
+		print FILE "reply_body_max_size $proxysettings{'MAX_INCOMING_SIZE'} KB all\n\n";
 	}
 
 	if ($proxysettings{'LOGGING'} eq 'on')
@@ -3288,6 +3419,35 @@ END
 			}
 		}
 
+		if ($proxysettings{'AUTH_METHOD'} eq 'ntlm-auth')
+		{
+			print FILE "auth_param ntlm program /usr/bin/ntlm_auth --helper-protocol=squid-2.5-ntlmssp";
+			if ($proxysettings{'NTLM_AUTH_GROUP'}) {
+				my $ntlm_auth_group = $proxysettings{'NTLM_AUTH_GROUP'};
+				$ntlm_auth_group =~ s/\\/\+/;
+
+				print FILE " --require-membership-of=\"$ntlm_auth_group\"";
+			}
+			print FILE "\n";
+
+			print FILE "auth_param ntlm children $proxysettings{'AUTH_CHILDREN'}\n\n";
+
+			# BASIC authentication
+			if ($proxysettings{'NTLM_AUTH_BASIC'} eq "on") {
+				print FILE "auth_param basic program /usr/bin/ntlm_auth --helper-protocol=squid-2.5-basic";
+				if ($proxysettings{'NTLM_AUTH_GROUP'}) {
+					my $ntlm_auth_group = $proxysettings{'NTLM_AUTH_GROUP'};
+					$ntlm_auth_group =~ s/\\/\+/;
+
+					print FILE " --require-membership-of=\"$ntlm_auth_group\"";
+				}
+				print FILE "\n";
+				print FILE "auth_param basic children 10\n";
+				print FILE "auth_param basic realm IPFire Web Proxy Server\n";
+				print FILE "auth_param basic credentialsttl 2 hours\n\n";
+			}
+		}
+
 		if ($proxysettings{'AUTH_METHOD'} eq 'radius')
 		{
 			print FILE "auth_param basic program $authdir/basic_radius_auth -h $proxysettings{'RADIUS_SERVER'} -p $proxysettings{'RADIUS_PORT'} ";
@@ -3383,42 +3543,6 @@ END
 		print FILE "acl blocked_mimetypes rep_mime_type \"$mimetypes\"\n\n";
 	}
 
-open (PORTS,"$acl_ports_ssl");
-@temp = <PORTS>;
-close PORTS;
-if (@temp)
-{
-	foreach (@temp) { print FILE "acl SSL_ports port $_"; }
-}
-open (PORTS,"$acl_ports_safe");
-@temp = <PORTS>;
-close PORTS;
-if (@temp)
-{
-	foreach (@temp) { print FILE "acl Safe_ports port $_"; }
-}
-	print FILE <<END
-
-acl IPFire_http  port $http_port
-acl IPFire_https port $https_port
-acl IPFire_ips              dst $netsettings{'GREEN_ADDRESS'}
-acl IPFire_networks         src "$acl_src_subnets"
-acl IPFire_servers          dst "$acl_src_subnets"
-acl IPFire_green_network    src $green_cidr
-acl IPFire_green_servers    dst $green_cidr
-END
-	;
-	if ($netsettings{'BLUE_DEV'}) { print FILE "acl IPFire_blue_network     src $blue_cidr\n"; }
-	if ($netsettings{'BLUE_DEV'}) { print FILE "acl IPFire_blue_servers     dst $blue_cidr\n"; }
-	if (!-z $acl_src_banned_ip) { print FILE "acl IPFire_banned_ips       src \"$acl_src_banned_ip\"\n"; }
-	if (!-z $acl_src_banned_mac) { print FILE "acl IPFire_banned_mac       arp \"$acl_src_banned_mac\"\n"; }
-	if (!-z $acl_src_unrestricted_ip) { print FILE "acl IPFire_unrestricted_ips src \"$acl_src_unrestricted_ip\"\n"; }
-	if (!-z $acl_src_unrestricted_mac) { print FILE "acl IPFire_unrestricted_mac arp \"$acl_src_unrestricted_mac\"\n"; }
-	print FILE <<END
-acl CONNECT method CONNECT
-END
-	;
-
 	if ($proxysettings{'CLASSROOM_EXT'} eq 'on') {
 		print FILE <<END
 
@@ -3486,7 +3610,7 @@ END
 		print FILE "http_access deny purge\n";
 		print FILE "url_rewrite_access deny localhost\n";
 	}
-	print FILE <<END
+	print FILE <<END;
 
 #Access to squid:
 #local machine, no restriction
@@ -3497,11 +3621,15 @@ http_access allow         IPFire_ips IPFire_networks IPFire_http
 http_access allow CONNECT IPFire_ips IPFire_networks IPFire_https
 
 #Deny not web services
-http_access deny          !Safe_ports
-http_access deny  CONNECT !SSL_ports
-
 END
-	;
+
+if (@safe_ports) {
+	print FILE "http_access deny          !Safe_ports\n";
+}
+
+if (@ssl_ports) {
+	print FILE "http_access deny  CONNECT !SSL_ports\n";
+}
 
 if ($proxysettings{'AUTH_METHOD'} eq 'ident')
 {
@@ -3929,34 +4057,6 @@ END
 		print FILE "http_reply_access allow all\n\n";
 	}
 
-	if ($proxysettings{'CACHE_SIZE'} > 0)
-	{
-		print FILE <<END
-maximum_object_size $proxysettings{'MAX_SIZE'} KB
-minimum_object_size $proxysettings{'MIN_SIZE'} KB
-
-END
-		;
-	} else { print FILE "cache deny all\n\n";	}
-
-	print FILE <<END
-request_body_max_size $proxysettings{'MAX_OUTGOING_SIZE'} KB
-END
-	;
-	if ($proxysettings{'MAX_INCOMING_SIZE'} > 0) {
-		if (!-z $acl_src_unrestricted_ip) { print FILE "reply_body_max_size none IPFire_unrestricted_ips\n"; }
-		if (!-z $acl_src_unrestricted_mac) { print FILE "reply_body_max_size none IPFire_unrestricted_mac\n"; }
-		if ($proxysettings{'AUTH_METHOD'} eq 'ncsa')
-		{
-			if (!-z $extgrp) { print FILE "reply_body_max_size none for_extended_users\n"; }
-		}
-	}
-	
-	if ( $proxysettings{'MAX_INCOMING_SIZE'} != '0' )
-	{
-		print FILE "reply_body_max_size $proxysettings{'MAX_INCOMING_SIZE'} KB all\n\n";
-	}
-
 	print FILE "visible_hostname";
 	if ($proxysettings{'VISIBLE_HOSTNAME'} eq '')
 	{
@@ -4035,7 +4135,9 @@ sub adduser
 		close(FILE);
 	} else {
 		&deluser($str_user);
-		system("/usr/sbin/htpasswd -b $userdb $str_user $str_pass");
+
+		my $htpasswd = new Apache::Htpasswd("$userdb");
+		$htpasswd->htpasswd($str_user, $str_pass);
 	}
 
 	if ($str_group eq 'standard') { open(FILE, ">>$stdgrp");

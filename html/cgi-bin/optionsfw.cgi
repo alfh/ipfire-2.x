@@ -70,6 +70,17 @@ if ($errormessage) {
         &Header::closebox();
 }
 
+# Set new defaults
+if (!$settings{'MASQUERADE_GREEN'}) {
+	$settings{'MASQUERADE_GREEN'} = 'on';
+}
+if (!$settings{'MASQUERADE_ORANGE'}) {
+	$settings{'MASQUERADE_ORANGE'} = 'on';
+}
+if (!$settings{'MASQUERADE_BLUE'}) {
+	$settings{'MASQUERADE_BLUE'} = 'on';
+}
+
 $checked{'DROPNEWNOTSYN'}{'off'} = '';
 $checked{'DROPNEWNOTSYN'}{'on'} = '';
 $checked{'DROPNEWNOTSYN'}{$settings{'DROPNEWNOTSYN'}} = "checked='checked'";
@@ -109,15 +120,90 @@ $checked{'SHOWTABLES'}{$settings{'SHOWTABLES'}} = "checked='checked'";
 $checked{'SHOWDROPDOWN'}{'off'} = '';
 $checked{'SHOWDROPDOWN'}{'on'} = '';
 $checked{'SHOWDROPDOWN'}{$settings{'SHOWDROPDOWN'}} = "checked='checked'";
+$checked{'CONNTRACK_FTP'}{'off'} = '';
+$checked{'CONNTRACK_FTP'}{'on'} = '';
+$checked{'CONNTRACK_FTP'}{$settings{'CONNTRACK_FTP'}} = "checked='checked'";
+$checked{'CONNTRACK_H323'}{'off'} = '';
+$checked{'CONNTRACK_H323'}{'on'} = '';
+$checked{'CONNTRACK_H323'}{$settings{'CONNTRACK_H323'}} = "checked='checked'";
+$checked{'CONNTRACK_IRC'}{'off'} = '';
+$checked{'CONNTRACK_IRC'}{'on'} = '';
+$checked{'CONNTRACK_IRC'}{$settings{'CONNTRACK_IRC'}} = "checked='checked'";
+$checked{'CONNTRACK_PPTP'}{'off'} = '';
+$checked{'CONNTRACK_PPTP'}{'on'} = '';
+$checked{'CONNTRACK_PPTP'}{$settings{'CONNTRACK_PPTP'}} = "checked='checked'";
+$checked{'CONNTRACK_SIP'}{'off'} = '';
+$checked{'CONNTRACK_SIP'}{'on'} = '';
+$checked{'CONNTRACK_SIP'}{$settings{'CONNTRACK_SIP'}} = "checked='checked'";
+$checked{'CONNTRACK_TFTP'}{'off'} = '';
+$checked{'CONNTRACK_TFTP'}{'on'} = '';
+$checked{'CONNTRACK_TFTP'}{$settings{'CONNTRACK_TFTP'}} = "checked='checked'";
 $selected{'FWPOLICY'}{$settings{'FWPOLICY'}}= 'selected';
 $selected{'FWPOLICY1'}{$settings{'FWPOLICY1'}}= 'selected';
 $selected{'FWPOLICY2'}{$settings{'FWPOLICY2'}}= 'selected';
+$selected{'MASQUERADE_GREEN'}{'off'} = '';
+$selected{'MASQUERADE_GREEN'}{'on'} = '';
+$selected{'MASQUERADE_GREEN'}{$settings{'MASQUERADE_GREEN'}} = 'selected="selected"';
+$selected{'MASQUERADE_ORANGE'}{'off'} = '';
+$selected{'MASQUERADE_ORANGE'}{'on'} = '';
+$selected{'MASQUERADE_ORANGE'}{$settings{'MASQUERADE_ORANGE'}} = 'selected="selected"';
+$selected{'MASQUERADE_BLUE'}{'off'} = '';
+$selected{'MASQUERADE_BLUE'}{'on'} = '';
+$selected{'MASQUERADE_BLUE'}{$settings{'MASQUERADE_BLUE'}} = 'selected="selected"';
 
 &Header::openbox('100%', 'center',);
 print "<form method='post' action='$ENV{'SCRIPT_NAME'}'>";
 
-print <<END
+print <<END;
 <form method='post' action='$ENV{'SCRIPT_NAME'}'>
+	<table width='95%' cellspacing='0'>
+		<tr bgcolor='$color{'color20'}'>
+			<td colspan='2' align='left'><b>$Lang::tr{'masquerading'}</b></td>
+		</tr>
+		<tr>
+			<td align='left' width='60%'>$Lang::tr{'masquerade green'}</td>
+			<td>
+				<select name='MASQUERADE_GREEN'>
+					<option value='on' $selected{'MASQUERADE_GREEN'}{'on'}>$Lang::tr{'masquerading enabled'}</option>
+					<option value='off' $selected{'MASQUERADE_GREEN'}{'off'}>$Lang::tr{'masquerading disabled'}</option>
+				</select>
+			</td>
+		</tr>
+END
+
+	if (&Header::orange_used()) {
+		print <<END;
+			<tr>
+				<td align='left' width='60%'>$Lang::tr{'masquerade orange'}</td>
+				<td>
+					<select name='MASQUERADE_ORANGE'>
+						<option value='on' $selected{'MASQUERADE_ORANGE'}{'on'}>$Lang::tr{'masquerading enabled'}</option>
+						<option value='off' $selected{'MASQUERADE_ORANGE'}{'off'}>$Lang::tr{'masquerading disabled'}</option>
+					</select>
+				</td>
+			</tr>
+END
+	}
+
+	if (&Header::blue_used()) {
+		print <<END;
+			<tr>
+				<td align='left' width='60%'>$Lang::tr{'masquerade blue'}</td>
+				<td>
+					<select name='MASQUERADE_BLUE'>
+						<option value='on' $selected{'MASQUERADE_BLUE'}{'on'}>$Lang::tr{'masquerading enabled'}</option>
+						<option value='off' $selected{'MASQUERADE_BLUE'}{'off'}>$Lang::tr{'masquerading disabled'}</option>
+					</select>
+				</td>
+			</tr>
+END
+	}
+
+	print <<END
+	</table>
+
+	<br>
+
 <table width='95%' cellspacing='0'>
 <tr bgcolor='$color{'color20'}'><td colspan='2' align='left'><b>$Lang::tr{'fw logging'}</b></td></tr>
 <tr><td align='left' width='60%'>$Lang::tr{'drop newnotsyn'}</td><td align='left'>on <input type='radio' name='DROPNEWNOTSYN' value='on' $checked{'DROPNEWNOTSYN'}{'on'} />/
@@ -155,7 +241,60 @@ print <<END
 																						<input type='radio' name='SHOWTABLES' value='off' $checked{'SHOWTABLES'}{'off'} /> off</td></tr>
 <tr><td align='left' width='60%'>$Lang::tr{'fw settings dropdown'}</td><td align='left'>on <input type='radio' name='SHOWDROPDOWN' value='on' $checked{'SHOWDROPDOWN'}{'on'} />/
 																						<input type='radio' name='SHOWDROPDOWN' value='off' $checked{'SHOWDROPDOWN'}{'off'} /> off</td></tr>																																																												
-</table>																						
+</table>
+
+<br />
+
+<table width='95%' cellspacing='0'>
+	<tr bgcolor='$color{'color20'}'>
+		<td colspan='2' align='left'>
+			<b>$Lang::tr{'application layer gateways'}</b>
+		</td>
+	</tr>
+	<tr>
+		<td align='left' width='60%'>FTP</td>
+		<td align='left'>
+			$Lang::tr{'on'} <input type='radio' name='CONNTRACK_FTP' value='on' $checked{'CONNTRACK_FTP'}{'on'} /> /
+			<input type='radio' name='CONNTRACK_FTP' value='off' $checked{'CONNTRACK_FTP'}{'off'} /> $Lang::tr{'off'}
+		</td>
+	</tr>
+	<tr>
+		<td align='left' width='60%'>H.323</td>
+		<td align='left'>
+			$Lang::tr{'on'} <input type='radio' name='CONNTRACK_H323' value='on' $checked{'CONNTRACK_H323'}{'on'} /> /
+			<input type='radio' name='CONNTRACK_H323' value='off' $checked{'CONNTRACK_H323'}{'off'} /> $Lang::tr{'off'}
+		</td>
+	</tr>
+	<tr>
+		<td align='left' width='60%'>IRC</td>
+		<td align='left'>
+			$Lang::tr{'on'} <input type='radio' name='CONNTRACK_IRC' value='on' $checked{'CONNTRACK_IRC'}{'on'} /> /
+			<input type='radio' name='CONNTRACK_IRC' value='off' $checked{'CONNTRACK_IRC'}{'off'} /> $Lang::tr{'off'}
+		</td>
+	</tr>
+	<tr>
+		<td align='left' width='60%'>PPTP</td>
+		<td align='left'>
+			$Lang::tr{'on'} <input type='radio' name='CONNTRACK_PPTP' value='on' $checked{'CONNTRACK_PPTP'}{'on'} /> /
+			<input type='radio' name='CONNTRACK_PPTP' value='off' $checked{'CONNTRACK_PPTP'}{'off'} /> $Lang::tr{'off'}
+		</td>
+	</tr>
+	<tr>
+		<td align='left' width='60%'>SIP</td>
+		<td align='left'>
+			$Lang::tr{'on'} <input type='radio' name='CONNTRACK_SIP' value='on' $checked{'CONNTRACK_SIP'}{'on'} /> /
+			<input type='radio' name='CONNTRACK_SIP' value='off' $checked{'CONNTRACK_SIP'}{'off'} /> $Lang::tr{'off'}
+		</td>
+	</tr>
+	<tr>
+		<td align='left' width='60%'>TFTP</td>
+		<td align='left'>
+			$Lang::tr{'on'} <input type='radio' name='CONNTRACK_TFTP' value='on' $checked{'CONNTRACK_TFTP'}{'on'} /> /
+			<input type='radio' name='CONNTRACK_TFTP' value='off' $checked{'CONNTRACK_TFTP'}{'off'} /> $Lang::tr{'off'}
+		</td>
+	</tr>
+</table>
+
 <br />
 <table width='95%' cellspacing='0'>
 <tr bgcolor='$color{'color20'}'><td colspan='2' align='left'><b>$Lang::tr{'fw default drop'}</b></td></tr>

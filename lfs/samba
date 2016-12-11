@@ -1,7 +1,7 @@
 ###############################################################################
 #                                                                             #
 # IPFire.org - A linux based firewall                                         #
-# Copyright (C) 2007-2013  IPFire Team  <info@ipfire.org>                     #
+# Copyright (C) 2007-2016  IPFire Team  <info@ipfire.org>                     #
 #                                                                             #
 # This program is free software: you can redistribute it and/or modify        #
 # it under the terms of the GNU General Public License as published by        #
@@ -24,7 +24,7 @@
 
 include Config
 
-VER        = 3.6.22
+VER        = 3.6.25
 
 THISAPP    = samba-$(VER)
 DL_FILE    = $(THISAPP).tar.gz
@@ -32,9 +32,9 @@ DL_FROM    = $(URL_IPFIRE)
 DIR_APP    = $(DIR_SRC)/$(THISAPP)
 TARGET     = $(DIR_INFO)/$(THISAPP)
 PROG       = samba
-PAK_VER    = 56
+PAK_VER    = 64
 
-DEPS       = "cups"
+DEPS       = "cups krb5"
 
 ###############################################################################
 # Top-level Rules
@@ -44,7 +44,7 @@ objects = $(DL_FILE)
 
 $(DL_FILE) = $(DL_FROM)/$(DL_FILE)
 
-$(DL_FILE)_MD5 = 59add4bb178ebc188d857bc13a508c0b
+$(DL_FILE)_MD5 = 76da2fa64edd94a0188531e7ecb27c4e
 
 install : $(TARGET)
 
@@ -77,17 +77,41 @@ $(subst %,%_MD5,$(objects)) :
 $(TARGET) : $(patsubst %,$(DIR_DL)/%,$(objects))
 	@$(PREBUILD)
 	@rm -rf $(DIR_APP) && cd $(DIR_SRC) && tar zxf $(DIR_DL)/$(DL_FILE)
+
+	# Apply Redhat CVE patches
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2015-7560-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-preparation-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2016-2110-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2016-2111-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2016-2112-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2016-2115-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2016-2118-v3-6.patch
+	cd $(DIR_APP) && patch -Np1 < $(DIR_SRC)/src/patches/samba/CVE-2015-5370-v3-6.patch
+
+	cd $(DIR_APP)/source3 && ./autogen.sh
 	cd $(DIR_APP)/source3 && ./configure \
-				--prefix=/usr \
-				--libdir=/usr/lib/ \
-				--sysconfdir=/var/ipfire \
-				--localstatedir=/var \
-				--with-piddir=/var/run \
-				--with-fhs \
-				--with-winbind \
-				--disable-swat \
-				--enable-cups \
-				--with-syslog
+		--prefix=/usr \
+		--libdir=/usr/lib/ \
+		--sysconfdir=/var/ipfire \
+		--localstatedir=/var \
+		--with-cachedir=/var/lib/samba \
+		--with-lockdir=/var/lib/samba \
+		--with-piddir=/var/run \
+		--with-ads \
+		--with-acl-support \
+		--with-libsmbclient \
+		--with-libsmbsharemodes \
+		--with-sendfile-support \
+		--without-smbwrapper \
+		--with-mmap \
+		--with-fhs \
+		--with-vfs \
+		--with-winbind \
+		--disable-swat \
+		--enable-cups \
+		--disable-avahi \
+		--with-syslog
+	cd $(DIR_APP)/source3 && make idl_full
 	cd $(DIR_APP)/source3 && make proto && make all $(MAKETUNING) $(EXTRA_MAKE)
 	cd $(DIR_APP)/source3 && make install
 	cd $(DIR_APP)/source3 && chmod -v 644 /usr/include/libsmbclient.h
@@ -107,5 +131,10 @@ $(TARGET) : $(patsubst %,$(DIR_DL)/%,$(objects))
 	cat /var/ipfire/samba/global /var/ipfire/samba/shares > /var/ipfire/samba/smb.conf
 	-mkdir -p /var/log/samba
 	install -v -m 644 $(DIR_SRC)/config/backup/includes/samba /var/ipfire/backup/addons/includes/samba
+
+	-mkdir -p /var/lib/samba/winbindd_privileged
+	chmod 750 /var/lib/samba/winbindd_privileged
+	chgrp wbpriv /var/lib/samba/winbindd_privileged
+
 	@rm -rf $(DIR_APP)
 	@$(POSTBUILD)

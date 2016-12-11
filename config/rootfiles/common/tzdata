@@ -113,6 +113,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/America/Eirunepe
 #usr/share/zoneinfo/America/El_Salvador
 #usr/share/zoneinfo/America/Ensenada
+#usr/share/zoneinfo/America/Fort_Nelson
 #usr/share/zoneinfo/America/Fort_Wayne
 #usr/share/zoneinfo/America/Fortaleza
 #usr/share/zoneinfo/America/Glace_Bay
@@ -234,6 +235,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Antarctica/Rothera
 #usr/share/zoneinfo/Antarctica/South_Pole
 #usr/share/zoneinfo/Antarctica/Syowa
+#usr/share/zoneinfo/Antarctica/Troll
 #usr/share/zoneinfo/Antarctica/Vostok
 #usr/share/zoneinfo/Arctic
 #usr/share/zoneinfo/Arctic/Longyearbyen
@@ -250,10 +252,12 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Asia/Bahrain
 #usr/share/zoneinfo/Asia/Baku
 #usr/share/zoneinfo/Asia/Bangkok
+#usr/share/zoneinfo/Asia/Barnaul
 #usr/share/zoneinfo/Asia/Beirut
 #usr/share/zoneinfo/Asia/Bishkek
 #usr/share/zoneinfo/Asia/Brunei
 #usr/share/zoneinfo/Asia/Calcutta
+#usr/share/zoneinfo/Asia/Chita
 #usr/share/zoneinfo/Asia/Choibalsan
 #usr/share/zoneinfo/Asia/Chongqing
 #usr/share/zoneinfo/Asia/Chungking
@@ -281,6 +285,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Asia/Kashgar
 #usr/share/zoneinfo/Asia/Kathmandu
 #usr/share/zoneinfo/Asia/Katmandu
+#usr/share/zoneinfo/Asia/Khandyga
 #usr/share/zoneinfo/Asia/Kolkata
 #usr/share/zoneinfo/Asia/Krasnoyarsk
 #usr/share/zoneinfo/Asia/Kuala_Lumpur
@@ -304,15 +309,13 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Asia/Qyzylorda
 #usr/share/zoneinfo/Asia/Rangoon
 #usr/share/zoneinfo/Asia/Riyadh
-#usr/share/zoneinfo/Asia/Riyadh87
-#usr/share/zoneinfo/Asia/Riyadh88
-#usr/share/zoneinfo/Asia/Riyadh89
 #usr/share/zoneinfo/Asia/Saigon
 #usr/share/zoneinfo/Asia/Sakhalin
 #usr/share/zoneinfo/Asia/Samarkand
 #usr/share/zoneinfo/Asia/Seoul
 #usr/share/zoneinfo/Asia/Shanghai
 #usr/share/zoneinfo/Asia/Singapore
+#usr/share/zoneinfo/Asia/Srednekolymsk
 #usr/share/zoneinfo/Asia/Taipei
 #usr/share/zoneinfo/Asia/Tashkent
 #usr/share/zoneinfo/Asia/Tbilisi
@@ -321,10 +324,12 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Asia/Thimbu
 #usr/share/zoneinfo/Asia/Thimphu
 #usr/share/zoneinfo/Asia/Tokyo
+#usr/share/zoneinfo/Asia/Tomsk
 #usr/share/zoneinfo/Asia/Ujung_Pandang
 #usr/share/zoneinfo/Asia/Ulaanbaatar
 #usr/share/zoneinfo/Asia/Ulan_Bator
 #usr/share/zoneinfo/Asia/Urumqi
+#usr/share/zoneinfo/Asia/Ust-Nera
 #usr/share/zoneinfo/Asia/Vientiane
 #usr/share/zoneinfo/Asia/Vladivostok
 #usr/share/zoneinfo/Asia/Yakutsk
@@ -432,6 +437,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Europe
 #usr/share/zoneinfo/Europe/Amsterdam
 #usr/share/zoneinfo/Europe/Andorra
+#usr/share/zoneinfo/Europe/Astrakhan
 #usr/share/zoneinfo/Europe/Athens
 #usr/share/zoneinfo/Europe/Belfast
 #usr/share/zoneinfo/Europe/Belgrade
@@ -440,6 +446,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Europe/Brussels
 #usr/share/zoneinfo/Europe/Bucharest
 #usr/share/zoneinfo/Europe/Budapest
+#usr/share/zoneinfo/Europe/Busingen
 #usr/share/zoneinfo/Europe/Chisinau
 #usr/share/zoneinfo/Europe/Copenhagen
 #usr/share/zoneinfo/Europe/Dublin
@@ -451,6 +458,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Europe/Jersey
 #usr/share/zoneinfo/Europe/Kaliningrad
 #usr/share/zoneinfo/Europe/Kiev
+#usr/share/zoneinfo/Europe/Kirov
 #usr/share/zoneinfo/Europe/Lisbon
 #usr/share/zoneinfo/Europe/Ljubljana
 #usr/share/zoneinfo/Europe/London
@@ -478,6 +486,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Europe/Tallinn
 #usr/share/zoneinfo/Europe/Tirane
 #usr/share/zoneinfo/Europe/Tiraspol
+#usr/share/zoneinfo/Europe/Ulyanovsk
 #usr/share/zoneinfo/Europe/Uzhgorod
 #usr/share/zoneinfo/Europe/Vaduz
 #usr/share/zoneinfo/Europe/Vatican
@@ -488,7 +497,6 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Europe/Zagreb
 #usr/share/zoneinfo/Europe/Zaporozhye
 #usr/share/zoneinfo/Europe/Zurich
-#usr/share/zoneinfo/Factory
 #usr/share/zoneinfo/GB
 #usr/share/zoneinfo/GB-Eire
 #usr/share/zoneinfo/GMT
@@ -524,10 +532,6 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Mexico/BajaNorte
 #usr/share/zoneinfo/Mexico/BajaSur
 #usr/share/zoneinfo/Mexico/General
-#usr/share/zoneinfo/Mideast
-#usr/share/zoneinfo/Mideast/Riyadh87
-#usr/share/zoneinfo/Mideast/Riyadh88
-#usr/share/zoneinfo/Mideast/Riyadh89
 #usr/share/zoneinfo/NZ
 #usr/share/zoneinfo/NZ-CHAT
 #usr/share/zoneinfo/Navajo
@@ -536,6 +540,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/Pacific
 #usr/share/zoneinfo/Pacific/Apia
 #usr/share/zoneinfo/Pacific/Auckland
+#usr/share/zoneinfo/Pacific/Bougainville
 #usr/share/zoneinfo/Pacific/Chatham
 #usr/share/zoneinfo/Pacific/Chuuk
 #usr/share/zoneinfo/Pacific/Easter
@@ -718,6 +723,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/America/Eirunepe
 #usr/share/zoneinfo/posix/America/El_Salvador
 #usr/share/zoneinfo/posix/America/Ensenada
+#usr/share/zoneinfo/posix/America/Fort_Nelson
 #usr/share/zoneinfo/posix/America/Fort_Wayne
 #usr/share/zoneinfo/posix/America/Fortaleza
 #usr/share/zoneinfo/posix/America/Glace_Bay
@@ -839,6 +845,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Antarctica/Rothera
 #usr/share/zoneinfo/posix/Antarctica/South_Pole
 #usr/share/zoneinfo/posix/Antarctica/Syowa
+#usr/share/zoneinfo/posix/Antarctica/Troll
 #usr/share/zoneinfo/posix/Antarctica/Vostok
 #usr/share/zoneinfo/posix/Arctic
 #usr/share/zoneinfo/posix/Arctic/Longyearbyen
@@ -855,10 +862,12 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Asia/Bahrain
 #usr/share/zoneinfo/posix/Asia/Baku
 #usr/share/zoneinfo/posix/Asia/Bangkok
+#usr/share/zoneinfo/posix/Asia/Barnaul
 #usr/share/zoneinfo/posix/Asia/Beirut
 #usr/share/zoneinfo/posix/Asia/Bishkek
 #usr/share/zoneinfo/posix/Asia/Brunei
 #usr/share/zoneinfo/posix/Asia/Calcutta
+#usr/share/zoneinfo/posix/Asia/Chita
 #usr/share/zoneinfo/posix/Asia/Choibalsan
 #usr/share/zoneinfo/posix/Asia/Chongqing
 #usr/share/zoneinfo/posix/Asia/Chungking
@@ -886,6 +895,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Asia/Kashgar
 #usr/share/zoneinfo/posix/Asia/Kathmandu
 #usr/share/zoneinfo/posix/Asia/Katmandu
+#usr/share/zoneinfo/posix/Asia/Khandyga
 #usr/share/zoneinfo/posix/Asia/Kolkata
 #usr/share/zoneinfo/posix/Asia/Krasnoyarsk
 #usr/share/zoneinfo/posix/Asia/Kuala_Lumpur
@@ -909,15 +919,13 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Asia/Qyzylorda
 #usr/share/zoneinfo/posix/Asia/Rangoon
 #usr/share/zoneinfo/posix/Asia/Riyadh
-#usr/share/zoneinfo/posix/Asia/Riyadh87
-#usr/share/zoneinfo/posix/Asia/Riyadh88
-#usr/share/zoneinfo/posix/Asia/Riyadh89
 #usr/share/zoneinfo/posix/Asia/Saigon
 #usr/share/zoneinfo/posix/Asia/Sakhalin
 #usr/share/zoneinfo/posix/Asia/Samarkand
 #usr/share/zoneinfo/posix/Asia/Seoul
 #usr/share/zoneinfo/posix/Asia/Shanghai
 #usr/share/zoneinfo/posix/Asia/Singapore
+#usr/share/zoneinfo/posix/Asia/Srednekolymsk
 #usr/share/zoneinfo/posix/Asia/Taipei
 #usr/share/zoneinfo/posix/Asia/Tashkent
 #usr/share/zoneinfo/posix/Asia/Tbilisi
@@ -926,10 +934,12 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Asia/Thimbu
 #usr/share/zoneinfo/posix/Asia/Thimphu
 #usr/share/zoneinfo/posix/Asia/Tokyo
+#usr/share/zoneinfo/posix/Asia/Tomsk
 #usr/share/zoneinfo/posix/Asia/Ujung_Pandang
 #usr/share/zoneinfo/posix/Asia/Ulaanbaatar
 #usr/share/zoneinfo/posix/Asia/Ulan_Bator
 #usr/share/zoneinfo/posix/Asia/Urumqi
+#usr/share/zoneinfo/posix/Asia/Ust-Nera
 #usr/share/zoneinfo/posix/Asia/Vientiane
 #usr/share/zoneinfo/posix/Asia/Vladivostok
 #usr/share/zoneinfo/posix/Asia/Yakutsk
@@ -1037,6 +1047,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Europe
 #usr/share/zoneinfo/posix/Europe/Amsterdam
 #usr/share/zoneinfo/posix/Europe/Andorra
+#usr/share/zoneinfo/posix/Europe/Astrakhan
 #usr/share/zoneinfo/posix/Europe/Athens
 #usr/share/zoneinfo/posix/Europe/Belfast
 #usr/share/zoneinfo/posix/Europe/Belgrade
@@ -1045,6 +1056,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Europe/Brussels
 #usr/share/zoneinfo/posix/Europe/Bucharest
 #usr/share/zoneinfo/posix/Europe/Budapest
+#usr/share/zoneinfo/posix/Europe/Busingen
 #usr/share/zoneinfo/posix/Europe/Chisinau
 #usr/share/zoneinfo/posix/Europe/Copenhagen
 #usr/share/zoneinfo/posix/Europe/Dublin
@@ -1056,6 +1068,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Europe/Jersey
 #usr/share/zoneinfo/posix/Europe/Kaliningrad
 #usr/share/zoneinfo/posix/Europe/Kiev
+#usr/share/zoneinfo/posix/Europe/Kirov
 #usr/share/zoneinfo/posix/Europe/Lisbon
 #usr/share/zoneinfo/posix/Europe/Ljubljana
 #usr/share/zoneinfo/posix/Europe/London
@@ -1083,6 +1096,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Europe/Tallinn
 #usr/share/zoneinfo/posix/Europe/Tirane
 #usr/share/zoneinfo/posix/Europe/Tiraspol
+#usr/share/zoneinfo/posix/Europe/Ulyanovsk
 #usr/share/zoneinfo/posix/Europe/Uzhgorod
 #usr/share/zoneinfo/posix/Europe/Vaduz
 #usr/share/zoneinfo/posix/Europe/Vatican
@@ -1093,7 +1107,6 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Europe/Zagreb
 #usr/share/zoneinfo/posix/Europe/Zaporozhye
 #usr/share/zoneinfo/posix/Europe/Zurich
-#usr/share/zoneinfo/posix/Factory
 #usr/share/zoneinfo/posix/GB
 #usr/share/zoneinfo/posix/GB-Eire
 #usr/share/zoneinfo/posix/GMT
@@ -1129,10 +1142,6 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Mexico/BajaNorte
 #usr/share/zoneinfo/posix/Mexico/BajaSur
 #usr/share/zoneinfo/posix/Mexico/General
-#usr/share/zoneinfo/posix/Mideast
-#usr/share/zoneinfo/posix/Mideast/Riyadh87
-#usr/share/zoneinfo/posix/Mideast/Riyadh88
-#usr/share/zoneinfo/posix/Mideast/Riyadh89
 #usr/share/zoneinfo/posix/NZ
 #usr/share/zoneinfo/posix/NZ-CHAT
 #usr/share/zoneinfo/posix/Navajo
@@ -1141,6 +1150,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/posix/Pacific
 #usr/share/zoneinfo/posix/Pacific/Apia
 #usr/share/zoneinfo/posix/Pacific/Auckland
+#usr/share/zoneinfo/posix/Pacific/Bougainville
 #usr/share/zoneinfo/posix/Pacific/Chatham
 #usr/share/zoneinfo/posix/Pacific/Chuuk
 #usr/share/zoneinfo/posix/Pacific/Easter
@@ -1323,6 +1333,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/America/Eirunepe
 #usr/share/zoneinfo/right/America/El_Salvador
 #usr/share/zoneinfo/right/America/Ensenada
+#usr/share/zoneinfo/right/America/Fort_Nelson
 #usr/share/zoneinfo/right/America/Fort_Wayne
 #usr/share/zoneinfo/right/America/Fortaleza
 #usr/share/zoneinfo/right/America/Glace_Bay
@@ -1444,6 +1455,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Antarctica/Rothera
 #usr/share/zoneinfo/right/Antarctica/South_Pole
 #usr/share/zoneinfo/right/Antarctica/Syowa
+#usr/share/zoneinfo/right/Antarctica/Troll
 #usr/share/zoneinfo/right/Antarctica/Vostok
 #usr/share/zoneinfo/right/Arctic
 #usr/share/zoneinfo/right/Arctic/Longyearbyen
@@ -1460,10 +1472,12 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Asia/Bahrain
 #usr/share/zoneinfo/right/Asia/Baku
 #usr/share/zoneinfo/right/Asia/Bangkok
+#usr/share/zoneinfo/right/Asia/Barnaul
 #usr/share/zoneinfo/right/Asia/Beirut
 #usr/share/zoneinfo/right/Asia/Bishkek
 #usr/share/zoneinfo/right/Asia/Brunei
 #usr/share/zoneinfo/right/Asia/Calcutta
+#usr/share/zoneinfo/right/Asia/Chita
 #usr/share/zoneinfo/right/Asia/Choibalsan
 #usr/share/zoneinfo/right/Asia/Chongqing
 #usr/share/zoneinfo/right/Asia/Chungking
@@ -1491,6 +1505,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Asia/Kashgar
 #usr/share/zoneinfo/right/Asia/Kathmandu
 #usr/share/zoneinfo/right/Asia/Katmandu
+#usr/share/zoneinfo/right/Asia/Khandyga
 #usr/share/zoneinfo/right/Asia/Kolkata
 #usr/share/zoneinfo/right/Asia/Krasnoyarsk
 #usr/share/zoneinfo/right/Asia/Kuala_Lumpur
@@ -1514,15 +1529,13 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Asia/Qyzylorda
 #usr/share/zoneinfo/right/Asia/Rangoon
 #usr/share/zoneinfo/right/Asia/Riyadh
-#usr/share/zoneinfo/right/Asia/Riyadh87
-#usr/share/zoneinfo/right/Asia/Riyadh88
-#usr/share/zoneinfo/right/Asia/Riyadh89
 #usr/share/zoneinfo/right/Asia/Saigon
 #usr/share/zoneinfo/right/Asia/Sakhalin
 #usr/share/zoneinfo/right/Asia/Samarkand
 #usr/share/zoneinfo/right/Asia/Seoul
 #usr/share/zoneinfo/right/Asia/Shanghai
 #usr/share/zoneinfo/right/Asia/Singapore
+#usr/share/zoneinfo/right/Asia/Srednekolymsk
 #usr/share/zoneinfo/right/Asia/Taipei
 #usr/share/zoneinfo/right/Asia/Tashkent
 #usr/share/zoneinfo/right/Asia/Tbilisi
@@ -1531,10 +1544,12 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Asia/Thimbu
 #usr/share/zoneinfo/right/Asia/Thimphu
 #usr/share/zoneinfo/right/Asia/Tokyo
+#usr/share/zoneinfo/right/Asia/Tomsk
 #usr/share/zoneinfo/right/Asia/Ujung_Pandang
 #usr/share/zoneinfo/right/Asia/Ulaanbaatar
 #usr/share/zoneinfo/right/Asia/Ulan_Bator
 #usr/share/zoneinfo/right/Asia/Urumqi
+#usr/share/zoneinfo/right/Asia/Ust-Nera
 #usr/share/zoneinfo/right/Asia/Vientiane
 #usr/share/zoneinfo/right/Asia/Vladivostok
 #usr/share/zoneinfo/right/Asia/Yakutsk
@@ -1642,6 +1657,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Europe
 #usr/share/zoneinfo/right/Europe/Amsterdam
 #usr/share/zoneinfo/right/Europe/Andorra
+#usr/share/zoneinfo/right/Europe/Astrakhan
 #usr/share/zoneinfo/right/Europe/Athens
 #usr/share/zoneinfo/right/Europe/Belfast
 #usr/share/zoneinfo/right/Europe/Belgrade
@@ -1650,6 +1666,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Europe/Brussels
 #usr/share/zoneinfo/right/Europe/Bucharest
 #usr/share/zoneinfo/right/Europe/Budapest
+#usr/share/zoneinfo/right/Europe/Busingen
 #usr/share/zoneinfo/right/Europe/Chisinau
 #usr/share/zoneinfo/right/Europe/Copenhagen
 #usr/share/zoneinfo/right/Europe/Dublin
@@ -1661,6 +1678,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Europe/Jersey
 #usr/share/zoneinfo/right/Europe/Kaliningrad
 #usr/share/zoneinfo/right/Europe/Kiev
+#usr/share/zoneinfo/right/Europe/Kirov
 #usr/share/zoneinfo/right/Europe/Lisbon
 #usr/share/zoneinfo/right/Europe/Ljubljana
 #usr/share/zoneinfo/right/Europe/London
@@ -1688,6 +1706,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Europe/Tallinn
 #usr/share/zoneinfo/right/Europe/Tirane
 #usr/share/zoneinfo/right/Europe/Tiraspol
+#usr/share/zoneinfo/right/Europe/Ulyanovsk
 #usr/share/zoneinfo/right/Europe/Uzhgorod
 #usr/share/zoneinfo/right/Europe/Vaduz
 #usr/share/zoneinfo/right/Europe/Vatican
@@ -1698,7 +1717,6 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Europe/Zagreb
 #usr/share/zoneinfo/right/Europe/Zaporozhye
 #usr/share/zoneinfo/right/Europe/Zurich
-#usr/share/zoneinfo/right/Factory
 #usr/share/zoneinfo/right/GB
 #usr/share/zoneinfo/right/GB-Eire
 #usr/share/zoneinfo/right/GMT
@@ -1734,10 +1752,6 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Mexico/BajaNorte
 #usr/share/zoneinfo/right/Mexico/BajaSur
 #usr/share/zoneinfo/right/Mexico/General
-#usr/share/zoneinfo/right/Mideast
-#usr/share/zoneinfo/right/Mideast/Riyadh87
-#usr/share/zoneinfo/right/Mideast/Riyadh88
-#usr/share/zoneinfo/right/Mideast/Riyadh89
 #usr/share/zoneinfo/right/NZ
 #usr/share/zoneinfo/right/NZ-CHAT
 #usr/share/zoneinfo/right/Navajo
@@ -1746,6 +1760,7 @@ usr/share/zoneinfo
 #usr/share/zoneinfo/right/Pacific
 #usr/share/zoneinfo/right/Pacific/Apia
 #usr/share/zoneinfo/right/Pacific/Auckland
+#usr/share/zoneinfo/right/Pacific/Bougainville
 #usr/share/zoneinfo/right/Pacific/Chatham
 #usr/share/zoneinfo/right/Pacific/Chuuk
 #usr/share/zoneinfo/right/Pacific/Easter

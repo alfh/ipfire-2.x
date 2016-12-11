@@ -20,6 +20,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin; export PATH
 eval $(/usr/local/bin/readhash /var/ipfire/ethernet/settings)
 eval $(/usr/local/bin/readhash /var/ipfire/snort/settings)
 
+ALIASFILE="/var/ipfire/ethernet/aliases"
+
 case "$1" in
         start)
 		if [ "$BLUE_NETADDRESS" ]; then
@@ -59,6 +61,19 @@ case "$1" in
 			if [ "$LOCAL_IP" ]; then
 				HOMENET+="$LOCAL_IP,"
 			fi
+
+			# Check if the red device is set to static and
+			# any aliases have been configured.
+			if [ "${RED_TYPE}" == "STATIC" ] && [ -s "${ALIASFILE}" ]; then
+				# Read in aliases file.
+				while IFS="," read -r address mode remark; do
+					# Check if the alias is enabled.
+					[ "${mode}" = "on" ] || continue
+
+					# Add alias to the list of HOMENET addresses.
+					HOMENET+="${address},"
+				done < "${ALIASFILE}"
+			fi
 		fi
 		HOMENET+="127.0.0.1"
 		echo "ipvar HOME_NET [$HOMENET]" > /etc/snort/vars
@@ -74,24 +89,13 @@ case "$1" in
 
                 for DEVICE in $DEVICES; do
                         boot_mesg "Starting Intrusion Detection System on $DEVICE..."
-                        /usr/sbin/snort -c /etc/snort/snort.conf -i $DEVICE -D -l /var/log/snort --create-pidfile --nolock-pidfile --pid-path /var/run/
+                        /usr/sbin/snort -c /etc/snort/snort.conf -i $DEVICE -D -l /var/log/snort --create-pidfile --nolock-pidfile --pid-path /var/run
                         evaluate_retval
 			sleep 1
                         chmod 644 /var/run/snort_$DEVICE.pid
                 done
-                
-	  
-                if [ -r /var/ipfire/guardian/enable ]; then
-		              IFACE=`/bin/cat /var/ipfire/red/iface 2>/dev/null | /usr/bin/tr -d '\012'`
-	                sed -e "s/^Interface.*/Interface       ${IFACE}/" /var/ipfire/guardian/guardian.conf > temp
-	                mv temp /var/ipfire/guardian/guardian.conf
-			chown nobody.root /var/ipfire/guardian/guardian.conf
-	              
-                  boot_mesg "Starting Guardian..."
-		              loadproc /usr/local/bin/guardian.pl -c /var/ipfire/guardian/guardian.conf
-		            fi
-		    ;;
-                
+	;;
+
         stop)
                DEVICES=""
                if [ -r /var/run/snort_$BLUE_DEV.pid ]; then
@@ -117,11 +121,6 @@ case "$1" in
               done
               
               rm /var/run/snort_* >/dev/null 2>/dev/null
-                
-              if ([ -r /var/ipfire/guardian/enable ] || [ ! -z $(pidofproc /usr/local/bin/guardian.pl) ]); then
-		          boot_mesg "Stopping Guardian..."
-		          killproc /usr/local/bin/guardian.pl
-		          fi
 
 		# Don't report returncode of rm if snort was not started
 		exit 0

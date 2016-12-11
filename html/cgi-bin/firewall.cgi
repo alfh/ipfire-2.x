@@ -21,14 +21,20 @@
 
 use strict;
 use Sort::Naturally;
+use utf8;
+use feature 'unicode_strings';
+
 no warnings 'uninitialized';
+
 # enable only the following on debugging purpose
 #use warnings;
 #use CGI::Carp 'fatalsToBrowser';
 
 require '/var/ipfire/general-functions.pl';
+require '/var/ipfire/network-functions.pl';
 require "${General::swroot}/lang.pl";
 require "${General::swroot}/header.pl";
+require "${General::swroot}/geoip-functions.pl";
 require "/usr/lib/firewall/firewall-lib.pl";
 
 unless (-d "${General::swroot}/firewall")			{ system("mkdir ${General::swroot}/firewall"); }
@@ -43,6 +49,7 @@ my %defaultNetworks=();
 my %netsettings=();
 my %customhost=();
 my %customgrp=();
+my %customgeoipgrp=();
 my %customnetworks=();
 my %customservice=();
 my %customservicegrp=();
@@ -62,6 +69,7 @@ my %ipsecsettings=();
 my %aliases=();
 my %optionsfw=();
 my %ifaces=();
+my %rulehash=();
 
 my @PROTOCOLS = ("TCP", "UDP", "ICMP", "IGMP", "AH", "ESP", "GRE","IPv6","IPIP");
 
@@ -69,6 +77,7 @@ my $color;
 my $confignet		= "${General::swroot}/fwhosts/customnetworks";
 my $confighost		= "${General::swroot}/fwhosts/customhosts";
 my $configgrp 		= "${General::swroot}/fwhosts/customgroups";
+my $configgeoipgrp	= "${General::swroot}/fwhosts/customgeoipgrp";
 my $configsrv 		= "${General::swroot}/fwhosts/customservices";
 my $configsrvgrp	= "${General::swroot}/fwhosts/customservicegrp";
 my $configccdnet 	= "${General::swroot}/ovpn/ccd.conf";
@@ -97,7 +106,7 @@ my @protocols;
 &General::readhasharray("$configipsec", \%ipsecconf);
 &Header::showhttpheaders();
 &Header::getcgihash(\%fwdfwsettings);
-&Header::openpage($Lang::tr{'fwdfw menu'}, 1, '');
+&Header::openpage($Lang::tr{'firewall rules'}, 1, '');
 &Header::openbigbox('100%', 'center',$errormessage);
 #### JAVA SCRIPT ####
 print<<END;
@@ -149,12 +158,41 @@ print<<END;
 			\$("#actions").toggle();
 		});
 
+		// Hide SNAT items when DNAT is selected and vice versa.
+		if (\$('input[name=nat]:checked').val() == 'dnat') {
+			\$('.snat').hide();
+		} else {
+			\$('.dnat').hide();
+		}
+
+		// Show/Hide elements when SNAT/DNAT get changed.
+		\$('input[name=nat]').change(function() {
+			\$('.snat').toggle();
+			\$('.dnat').toggle();
+		});
+
 		// Time constraints
 		if(!\$("#USE_TIME_CONSTRAINTS").attr("checked")) {
 			\$("#TIME_CONSTRAINTS").hide();
 		}
 		\$("#USE_TIME_CONSTRAINTS").change(function() {
 			\$("#TIME_CONSTRAINTS").toggle();
+		});
+
+		// Limit concurrent connections per ip
+		if(!\$("#USE_LIMIT_CONCURRENT_CONNECTIONS_PER_IP").attr("checked")) {
+			\$("#LIMIT_CON").hide();
+		}
+		\$("#USE_LIMIT_CONCURRENT_CONNECTIONS_PER_IP").change(function() {
+			\$("#LIMIT_CON").toggle();
+		});
+
+		// Rate-limit new connections
+		if(!\$("#USE_RATELIMIT").attr("checked")) {
+			\$("#RATELIMIT").hide();
+		}
+		\$("#USE_RATELIMIT").change(function() {
+			\$("#RATELIMIT").toggle();
 		});
 
 		// Automatically select radio buttons when corresponding
@@ -174,6 +212,7 @@ if ($fwdfwsettings{'ACTION'} eq 'saverule')
 	&General::readhasharray("$configfwdfw", \%configfwdfw);
 	&General::readhasharray("$configinput", \%configinputfw);
 	&General::readhasharray("$configoutgoing", \%configoutgoingfw);
+	my $maxkey;
 	#Set Variables according to the JQuery code in protocol section
 	if ($fwdfwsettings{'PROT'} eq 'TCP' || $fwdfwsettings{'PROT'} eq 'UDP')
 	{
@@ -194,6 +233,7 @@ if ($fwdfwsettings{'ACTION'} eq 'saverule')
 	$errormessage=&checksource;
 	if(!$errormessage){&checktarget;}
 	if(!$errormessage){&checkrule;}
+
 	#check if manual ip (source) is orange network
 	if ($fwdfwsettings{'grp1'} eq 'src_addr'){
 		my ($sip,$scidr) = split("/",$fwdfwsettings{$fwdfwsettings{'grp1'}});
@@ -209,139 +249,80 @@ if ($fwdfwsettings{'ACTION'} eq 'saverule')
 	if(	$fwdfwsettings{'grp1'} eq 'ipfire_src' && $fwdfwsettings{'grp2'} eq 'ipfire'){
 		$errormessage=$Lang::tr{'fwdfw err same'};
 	}
-	#INPUT part
-	if($fwdfwsettings{'grp2'} eq 'ipfire' && $fwdfwsettings{$fwdfwsettings{'grp1'}} ne 'ORANGE'){
+	# INPUT part
+	if ($fwdfwsettings{'grp2'} eq 'ipfire' && $fwdfwsettings{$fwdfwsettings{'grp1'}} ne 'ORANGE'){
 		$fwdfwsettings{'config'}=$configinput;
 		$fwdfwsettings{'chain'} = 'INPUTFW';
-		my $maxkey=&General::findhasharraykey(\%configinputfw);
-		#check if we have an identical rule already
-		if($fwdfwsettings{'oldrulenumber'} eq $fwdfwsettings{'rulepos'}){
-			foreach my $key (sort keys %configinputfw){
-				if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'LOG'},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'}"
-					eq "$configinputfw{$key}[0],$configinputfw{$key}[2],$configinputfw{$key}[3],$configinputfw{$key}[4],$configinputfw{$key}[5],$configinputfw{$key}[6],$configinputfw{$key}[7],$configinputfw{$key}[8],$configinputfw{$key}[9],$configinputfw{$key}[10],$configinputfw{$key}[11],$configinputfw{$key}[12],$configinputfw{$key}[13],$configinputfw{$key}[14],$configinputfw{$key}[15],$configinputfw{$key}[17],$configinputfw{$key}[18],$configinputfw{$key}[19],$configinputfw{$key}[20],$configinputfw{$key}[21],$configinputfw{$key}[22],$configinputfw{$key}[23],$configinputfw{$key}[24],$configinputfw{$key}[25],$configinputfw{$key}[26],$configinputfw{$key}[27],$configinputfw{$key}[28],$configinputfw{$key}[29],$configinputfw{$key}[30],$configinputfw{$key}[31]"){
-						$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
-						if ($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on'){
-							$errormessage='';
-						}elsif($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on' && $fwdfwsettings{'ruleremark'} ne '' && !&validremark($fwdfwsettings{'ruleremark'})){
-							$errormessage=$Lang::tr{'fwdfw err remark'}."<br>";
-						}
-						if ($fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'}){
-							$fwdfwsettings{'nosave'} = 'on';
-						}
-				}	
-			}	
-		}
-		#check Rulepos on new Rule
-		if($fwdfwsettings{'rulepos'} > 0 && !$fwdfwsettings{'oldrulenumber'}){
-			$fwdfwsettings{'oldrulenumber'}=$maxkey;
-			foreach my $key (sort keys %configinputfw){
-				if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'LOG'},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'}"
-					eq "$configinputfw{$key}[0],$configinputfw{$key}[2],$configinputfw{$key}[3],$configinputfw{$key}[4],$configinputfw{$key}[5],$configinputfw{$key}[6],$configinputfw{$key}[7],$configinputfw{$key}[8],$configinputfw{$key}[9],$configinputfw{$key}[10],$configinputfw{$key}[11],$configinputfw{$key}[12],$configinputfw{$key}[13],$configinputfw{$key}[14],$configinputfw{$key}[15],$configinputfw{$key}[17],$configinputfw{$key}[18],$configinputfw{$key}[19],$configinputfw{$key}[20],$configinputfw{$key}[21],$configinputfw{$key}[22],$configinputfw{$key}[23],$configinputfw{$key}[24],$configinputfw{$key}[25],$configinputfw{$key}[26],$configinputfw{$key}[27],$configinputfw{$key}[28],$configinputfw{$key}[29],$configinputfw{$key}[30],$configinputfw{$key}[31]"){
-						$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
-				}
-			}
-		}
-		#check if we just close a rule
-		if( $fwdfwsettings{'oldgrp1a'} eq  $fwdfwsettings{'grp1'} && $fwdfwsettings{'oldgrp1b'} eq $fwdfwsettings{$fwdfwsettings{'grp1'}} && $fwdfwsettings{'oldgrp2a'} eq  $fwdfwsettings{'grp2'} && $fwdfwsettings{'oldgrp2b'} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} &&  $fwdfwsettings{'oldgrp3a'} eq $fwdfwsettings{'grp3'} && $fwdfwsettings{'oldgrp3b'} eq  $fwdfwsettings{$fwdfwsettings{'grp3'}} && $fwdfwsettings{'oldusesrv'} eq $fwdfwsettings{'USESRV'} && $fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'oldruletype'} eq $fwdfwsettings{'chain'}) {
-			if($fwdfwsettings{'nosave'} eq 'on' && $fwdfwsettings{'updatefwrule'} eq 'on'){
-				$errormessage='';
-				$fwdfwsettings{'nosave2'} = 'on';
-			}
-		}
-		if (!$errormessage){
-			if($fwdfwsettings{'nosave2'} ne 'on'){
-				&saverule(\%configinputfw,$configinput);
-			}
-		}
-	}elsif($fwdfwsettings{'grp1'} eq 'ipfire_src' ){
+		$maxkey=&General::findhasharraykey(\%configinputfw);
+		%rulehash=%configinputfw;
+	}elsif ($fwdfwsettings{'grp1'} eq 'ipfire_src' ){
 	# OUTGOING PART
 		$fwdfwsettings{'config'}=$configoutgoing;
 		$fwdfwsettings{'chain'} = 'OUTGOINGFW';
-		my $maxkey=&General::findhasharraykey(\%configoutgoingfw);
-		if($fwdfwsettings{'oldrulenumber'} eq $fwdfwsettings{'rulepos'}){
-			foreach my $key (sort keys %configoutgoingfw){
-				if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'LOG'},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'}"
-					eq "$configoutgoingfw{$key}[0],$configoutgoingfw{$key}[2],$configoutgoingfw{$key}[3],$configoutgoingfw{$key}[4],$configoutgoingfw{$key}[5],$configoutgoingfw{$key}[6],$configoutgoingfw{$key}[7],$configoutgoingfw{$key}[8],$configoutgoingfw{$key}[9],$configoutgoingfw{$key}[10],$configoutgoingfw{$key}[11],$configoutgoingfw{$key}[12],$configoutgoingfw{$key}[13],$configoutgoingfw{$key}[14],$configoutgoingfw{$key}[15],$configoutgoingfw{$key}[17],$configoutgoingfw{$key}[18],$configoutgoingfw{$key}[19],$configoutgoingfw{$key}[20],$configoutgoingfw{$key}[21],$configoutgoingfw{$key}[22],$configoutgoingfw{$key}[23],$configoutgoingfw{$key}[24],$configoutgoingfw{$key}[25],$configoutgoingfw{$key}[26],$configoutgoingfw{$key}[27],$configoutgoingfw{$key}[28],$configoutgoingfw{$key}[29],$configoutgoingfw{$key}[30],$configoutgoingfw{$key}[31]"){
-						$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
-						if ($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on'){
-							$errormessage='';
-						}elsif($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on' && $fwdfwsettings{'ruleremark'} ne '' && !&validremark($fwdfwsettings{'ruleremark'})){
-							$errormessage=$Lang::tr{'fwdfw err remark'}."<br>";
-						}
-						if ($fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'}){
-							$fwdfwsettings{'nosave'} = 'on';
-						}
-				}
-			}
-		}
-		#check Rulepos on new Rule
-		if($fwdfwsettings{'rulepos'} > 0 && !$fwdfwsettings{'oldrulenumber'}){
-			print"CHECK OUTGOING DOPPELTE REGEL<br>";
-			$fwdfwsettings{'oldrulenumber'}=$maxkey;
-			foreach my $key (sort keys %configoutgoingfw){
-				if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'LOG'},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'}"
-					eq "$configoutgoingfw{$key}[0],$configoutgoingfw{$key}[2],$configoutgoingfw{$key}[3],$configoutgoingfw{$key}[4],$configoutgoingfw{$key}[5],$configoutgoingfw{$key}[6],$configoutgoingfw{$key}[7],$configoutgoingfw{$key}[8],$configoutgoingfw{$key}[9],$configoutgoingfw{$key}[10],$configoutgoingfw{$key}[11],$configoutgoingfw{$key}[12],$configoutgoingfw{$key}[13],$configoutgoingfw{$key}[14],$configoutgoingfw{$key}[15],$configoutgoingfw{$key}[17],$configoutgoingfw{$key}[18],$configoutgoingfw{$key}[19],$configoutgoingfw{$key}[20],$configoutgoingfw{$key}[21],$configoutgoingfw{$key}[22],$configoutgoingfw{$key}[23],$configoutgoingfw{$key}[24],$configoutgoingfw{$key}[25],$configoutgoingfw{$key}[26],$configoutgoingfw{$key}[27],$configoutgoingfw{$key}[28],$configoutgoingfw{$key}[29],$configoutgoingfw{$key}[30],$configoutgoingfw{$key}[31]"){
-						$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
-				}
-			}
-		}
-		#check if we just close a rule
-		if( $fwdfwsettings{'oldgrp1a'} eq  $fwdfwsettings{'grp1'} && $fwdfwsettings{'oldgrp1b'} eq $fwdfwsettings{$fwdfwsettings{'grp1'}} && $fwdfwsettings{'oldgrp2a'} eq  $fwdfwsettings{'grp2'} && $fwdfwsettings{'oldgrp2b'} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} &&  $fwdfwsettings{'oldgrp3a'} eq $fwdfwsettings{'grp3'} && $fwdfwsettings{'oldgrp3b'} eq  $fwdfwsettings{$fwdfwsettings{'grp3'}} && $fwdfwsettings{'oldusesrv'} eq $fwdfwsettings{'USESRV'} && $fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'oldruletype'} eq $fwdfwsettings{'chain'}) {
-			if($fwdfwsettings{'nosave'} eq 'on' && $fwdfwsettings{'updatefwrule'} eq 'on'){
-				$fwdfwsettings{'nosave2'} = 'on';
-				$errormessage='';
-			}
-		}
-		#increase counters
-		if (!$errormessage){
-			if ($fwdfwsettings{'nosave2'} ne 'on'){
-				&saverule(\%configoutgoingfw,$configoutgoing);
-			}
-		}
-	}else{
-		#FORWARD PART
+		$maxkey=&General::findhasharraykey(\%configoutgoingfw);
+		%rulehash=%configoutgoingfw;
+	}else {
+	# FORWARD PART
 		$fwdfwsettings{'config'}=$configfwdfw;
 		$fwdfwsettings{'chain'} = 'FORWARDFW';
-		my $maxkey=&General::findhasharraykey(\%configfwdfw);
-		if($fwdfwsettings{'oldrulenumber'} eq $fwdfwsettings{'rulepos'}){
-			#check if we have an identical rule already
-			foreach my $key (sort keys %configfwdfw){
-				if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'}"
-					eq "$configfwdfw{$key}[0],$configfwdfw{$key}[2],$configfwdfw{$key}[3],$configfwdfw{$key}[4],$configfwdfw{$key}[5],$configfwdfw{$key}[6],$configfwdfw{$key}[7],$configfwdfw{$key}[8],$configfwdfw{$key}[9],$configfwdfw{$key}[10],$configfwdfw{$key}[11],$configfwdfw{$key}[12],$configfwdfw{$key}[13],$configfwdfw{$key}[14],$configfwdfw{$key}[15],$configfwdfw{$key}[18],$configfwdfw{$key}[19],$configfwdfw{$key}[20],$configfwdfw{$key}[21],$configfwdfw{$key}[22],$configfwdfw{$key}[23],$configfwdfw{$key}[24],$configfwdfw{$key}[25],$configfwdfw{$key}[26],$configfwdfw{$key}[27],$configfwdfw{$key}[28],$configfwdfw{$key}[29],$configfwdfw{$key}[30],$configfwdfw{$key}[31]"){
-						$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
-						if ($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on' ){
-							$errormessage='';
-						}elsif($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on' && $fwdfwsettings{'ruleremark'} ne '' && !&validremark($fwdfwsettings{'ruleremark'})){
-							$errormessage=$Lang::tr{'fwdfw err remark'}."<br>";
-						}
-						if ($fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'}){
-							$fwdfwsettings{'nosave'} = 'on';
-						}
-				}		
-			}
-		}	
-		#check Rulepos on new Rule
-		if($fwdfwsettings{'rulepos'} > 0 && !$fwdfwsettings{'oldrulenumber'}){
-			$fwdfwsettings{'oldrulenumber'}=$maxkey;
-			foreach my $key (sort keys %configfwdfw){
-				if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'}"
-					eq "$configfwdfw{$key}[0],$configfwdfw{$key}[2],$configfwdfw{$key}[3],$configfwdfw{$key}[4],$configfwdfw{$key}[5],$configfwdfw{$key}[6],$configfwdfw{$key}[7],$configfwdfw{$key}[8],$configfwdfw{$key}[9],$configfwdfw{$key}[10],$configfwdfw{$key}[11],$configfwdfw{$key}[12],$configfwdfw{$key}[13],$configfwdfw{$key}[14],$configfwdfw{$key}[15],$configfwdfw{$key}[18],$configfwdfw{$key}[19],$configfwdfw{$key}[20],$configfwdfw{$key}[21],$configfwdfw{$key}[22],$configfwdfw{$key}[23],$configfwdfw{$key}[24],$configfwdfw{$key}[25],$configfwdfw{$key}[26],$configfwdfw{$key}[27],$configfwdfw{$key}[28],$configfwdfw{$key}[29],$configfwdfw{$key}[30],$configfwdfw{$key}[31]"){
-						$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
-				}		
+		$maxkey=&General::findhasharraykey(\%configfwdfw);
+		%rulehash=%configfwdfw;
+	}
+	#check if we have an identical rule already
+	if($fwdfwsettings{'oldrulenumber'} eq $fwdfwsettings{'rulepos'}){
+		foreach my $key (sort keys %rulehash){
+			if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'ruleremark'},$fwdfwsettings{'LOG'},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'},$fwdfwsettings{'LIMIT_CON_CON'},$fwdfwsettings{'concon'},$fwdfwsettings{'RATE_LIMIT'},$fwdfwsettings{'ratecon'},$fwdfwsettings{'RATETIME'}"
+				eq "$rulehash{$key}[0],$rulehash{$key}[2],$rulehash{$key}[3],$rulehash{$key}[4],$rulehash{$key}[5],$rulehash{$key}[6],$rulehash{$key}[7],$rulehash{$key}[8],$rulehash{$key}[9],$rulehash{$key}[10],$rulehash{$key}[11],$rulehash{$key}[12],$rulehash{$key}[13],$rulehash{$key}[14],$rulehash{$key}[15],$rulehash{$key}[16],$rulehash{$key}[17],$rulehash{$key}[18],$rulehash{$key}[19],$rulehash{$key}[20],$rulehash{$key}[21],$rulehash{$key}[22],$rulehash{$key}[23],$rulehash{$key}[24],$rulehash{$key}[25],$rulehash{$key}[26],$rulehash{$key}[27],$rulehash{$key}[28],$rulehash{$key}[29],$rulehash{$key}[30],$rulehash{$key}[31],$rulehash{$key}[32],$rulehash{$key}[33],$rulehash{$key}[34],$rulehash{$key}[35],$rulehash{$key}[36]"){
+					$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
+					if($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on' && $fwdfwsettings{'ruleremark'} ne '' && !&validremark($fwdfwsettings{'ruleremark'})){
+						$errormessage=$Lang::tr{'fwdfw err remark'}."<br>";
+					}
+					if($fwdfwsettings{'oldruleremark'} ne $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'updatefwrule'} eq 'on' && $fwdfwsettings{'ruleremark'} ne '' && &validremark($fwdfwsettings{'ruleremark'})){
+						$errormessage='';
+					}
+					if ($fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'}){
+						$fwdfwsettings{'nosave'} = 'on';
+					}
 			}
 		}
-		#check if we just close a rule
-		if( $fwdfwsettings{'oldgrp1a'} eq  $fwdfwsettings{'grp1'} && $fwdfwsettings{'oldgrp1b'} eq $fwdfwsettings{$fwdfwsettings{'grp1'}} && $fwdfwsettings{'oldgrp2a'} eq  $fwdfwsettings{'grp2'} && $fwdfwsettings{'oldgrp2b'} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} &&  $fwdfwsettings{'oldgrp3a'} eq $fwdfwsettings{'grp3'} && $fwdfwsettings{'oldgrp3b'} eq  $fwdfwsettings{$fwdfwsettings{'grp3'}} && $fwdfwsettings{'oldusesrv'} eq $fwdfwsettings{'USESRV'} && $fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'oldruletype'} eq $fwdfwsettings{'chain'}) {
-			if($fwdfwsettings{'nosave'} eq 'on' && $fwdfwsettings{'updatefwrule'} eq 'on'){
-				$fwdfwsettings{'nosave2'} = 'on';
-				$errormessage='';
+	}
+	#check Rulepos on new Rule
+	if($fwdfwsettings{'rulepos'} > 0 && !$fwdfwsettings{'oldrulenumber'}){
+		$fwdfwsettings{'oldrulenumber'}=$maxkey;
+		foreach my $key (sort keys %rulehash){
+			if (   "$fwdfwsettings{'RULE_ACTION'},$fwdfwsettings{'ACTIVE'},$fwdfwsettings{'grp1'},$fwdfwsettings{$fwdfwsettings{'grp1'}},$fwdfwsettings{'grp2'},$fwdfwsettings{$fwdfwsettings{'grp2'}},$fwdfwsettings{'USE_SRC_PORT'},$fwdfwsettings{'PROT'},$fwdfwsettings{'ICMP_TYPES'},$fwdfwsettings{'SRC_PORT'},$fwdfwsettings{'USESRV'},$fwdfwsettings{'TGT_PROT'},$fwdfwsettings{'ICMP_TGT'},$fwdfwsettings{'grp3'},$fwdfwsettings{$fwdfwsettings{'grp3'}},$fwdfwsettings{'TIME'},$fwdfwsettings{'TIME_MON'},$fwdfwsettings{'TIME_TUE'},$fwdfwsettings{'TIME_WED'},$fwdfwsettings{'TIME_THU'},$fwdfwsettings{'TIME_FRI'},$fwdfwsettings{'TIME_SAT'},$fwdfwsettings{'TIME_SUN'},$fwdfwsettings{'TIME_FROM'},$fwdfwsettings{'TIME_TO'},$fwdfwsettings{'USE_NAT'},$fwdfwsettings{$fwdfwsettings{'nat'}},$fwdfwsettings{'dnatport'},$fwdfwsettings{'nat'},$fwdfwsettings{'LIMIT_CON_CON'},$fwdfwsettings{'concon'},$fwdfwsettings{'RATE_LIMIT'},$fwdfwsettings{'ratecon'},$fwdfwsettings{'RATETIME'}"
+				eq "$rulehash{$key}[0],$rulehash{$key}[2],$rulehash{$key}[3],$rulehash{$key}[4],$rulehash{$key}[5],$rulehash{$key}[6],$rulehash{$key}[7],$rulehash{$key}[8],$rulehash{$key}[9],$rulehash{$key}[10],$rulehash{$key}[11],$rulehash{$key}[12],$rulehash{$key}[13],$rulehash{$key}[14],$rulehash{$key}[15],$rulehash{$key}[18],$rulehash{$key}[19],$rulehash{$key}[20],$rulehash{$key}[21],$rulehash{$key}[22],$rulehash{$key}[23],$rulehash{$key}[24],$rulehash{$key}[25],$rulehash{$key}[26],$rulehash{$key}[27],$rulehash{$key}[28],$rulehash{$key}[29],$rulehash{$key}[30],$rulehash{$key}[31],$rulehash{$key}[32],$rulehash{$key}[33],$rulehash{$key}[34],$rulehash{$key}[35],$rulehash{$key}[36]"){
+					$errormessage.=$Lang::tr{'fwdfw err ruleexists'};
 			}
 		}
-		#increase counters
-		if (!$errormessage){
-			if ($fwdfwsettings{'nosave2'} ne 'on'){
-				&saverule(\%configfwdfw,$configfwdfw);
-			}
+	}
+	#check if we just close a rule
+	if( $fwdfwsettings{'oldgrp1a'} eq  $fwdfwsettings{'grp1'} && $fwdfwsettings{'oldgrp1b'} eq $fwdfwsettings{$fwdfwsettings{'grp1'}} && $fwdfwsettings{'oldgrp2a'} eq  $fwdfwsettings{'grp2'} && $fwdfwsettings{'oldgrp2b'} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} &&  $fwdfwsettings{'oldgrp3a'} eq $fwdfwsettings{'grp3'} && $fwdfwsettings{'oldgrp3b'} eq  $fwdfwsettings{$fwdfwsettings{'grp3'}} && $fwdfwsettings{'oldusesrv'} eq $fwdfwsettings{'USESRV'} && $fwdfwsettings{'oldruleremark'} eq $fwdfwsettings{'ruleremark'} && $fwdfwsettings{'oldruletype'} eq $fwdfwsettings{'chain'}){
+		if($fwdfwsettings{'nosave'} eq 'on' && $fwdfwsettings{'updatefwrule'} eq 'on'){
+			$fwdfwsettings{'nosave2'} = 'on';
+			$errormessage='';
+		}
+	}
+	#check max concurrent connections per ip address
+	if ($fwdfwsettings{'LIMIT_CON_CON'} eq 'ON'){
+		if (!($fwdfwsettings{'concon'} =~ /^(\d+)$/)) {
+			$errormessage.=$Lang::tr{'fwdfw err concon'};
+		}
+	}else{
+		$fwdfwsettings{'concon'}='';
+	}
+	#check ratelimit value
+	if ($fwdfwsettings{'RATE_LIMIT'} eq 'ON'){
+		if (!($fwdfwsettings{'ratecon'} =~ /^(\d+)$/)) {
+			$errormessage.=$Lang::tr{'fwdfw err ratecon'};
+		}
+	}else{
+		$fwdfwsettings{'ratecon'}='';
+	}
+	#increase counters
+	if (!$errormessage){
+		if ($fwdfwsettings{'nosave2'} ne 'on'){
+			&saverule(\%rulehash,$fwdfwsettings{'config'});
 		}
 	}
 	if ($errormessage){
@@ -485,6 +466,9 @@ sub checksource
 			}
 		}
 		if ($fwdfwsettings{'isip'} eq 'on'){
+			#remove leading zero
+			$ip = &Network::ip_remove_zero($ip);
+
 			##check if ip is valid
 			if (! &General::validip($ip)){
 				$errormessage.=$Lang::tr{'fwdfw err src_addr'}."<br>";
@@ -505,8 +489,8 @@ sub checksource
 			return $errormessage;
 		}
 	}elsif($fwdfwsettings{'src_addr'} eq $fwdfwsettings{$fwdfwsettings{'grp1'}} && $fwdfwsettings{'src_addr'} eq ''){
-		$errormessage.=$Lang::tr{'fwdfw err nosrcip'};
-		return $errormessage;
+		$fwdfwsettings{'grp1'}='std_net_src';
+		$fwdfwsettings{$fwdfwsettings{'grp1'}} = 'ALL';
 	}
 
 	#check empty fields
@@ -555,16 +539,6 @@ sub checktarget
 	#check DNAT settings (has to be single Host and single Port or portrange)
 	if ($fwdfwsettings{'USE_NAT'} eq 'ON' && $fwdfwsettings{'nat'} eq 'dnat'){
 		if($fwdfwsettings{'grp2'} eq 'tgt_addr' || $fwdfwsettings{'grp2'} eq 'cust_host_tgt' || $fwdfwsettings{'grp2'} eq 'ovpn_host_tgt'){
-			#check if manual ip is a single Host (if set)
-			if ($fwdfwsettings{'grp2'} eq 'tgt_addr'){
-				my @tmp= split (/\./,$fwdfwsettings{$fwdfwsettings{'grp2'}});
-				my @tmp1= split ("/",$tmp[3]);
-				if (($tmp1[0] eq "0") || ($tmp1[0] eq "255"))
-				{
-					$errormessage=$Lang::tr{'fwdfw dnat error'}."<br>";
-					return $errormessage;
-				}
-			}
 			#check if Port is a single Port or portrange
 			if ($fwdfwsettings{'nat'} eq 'dnat' &&  $fwdfwsettings{'grp3'} eq 'TGT_PORT'){
 				if(($fwdfwsettings{'PROT'} ne 'TCP'|| $fwdfwsettings{'PROT'} ne 'UDP') && $fwdfwsettings{'TGT_PORT'} eq ''){
@@ -577,8 +551,10 @@ sub checktarget
 				}
 			}
 		}else{
-			$errormessage=$Lang::tr{'fwdfw dnat error'}."<br>";
-			return $errormessage;
+			if ($fwdfwsettings{'grp2'} ne 'ipfire'){
+				$errormessage=$Lang::tr{'fwdfw dnat error'}."<br>";
+				return $errormessage;
+			}
 		}
 	}
 	if ($fwdfwsettings{'tgt_addr'} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} && $fwdfwsettings{'tgt_addr'} ne ''){
@@ -587,11 +563,15 @@ sub checktarget
 			($ip,$subnet)=split (/\//,$fwdfwsettings{'tgt_addr'});
 			$subnet = &General::iporsubtocidr($subnet);
 		}
+
 		#check if only ip
 		if($fwdfwsettings{'tgt_addr'}=~/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/){
 			$ip=$fwdfwsettings{'tgt_addr'};
 			$subnet='32';
 		}
+		#remove leading zero
+		$ip = &Network::ip_remove_zero($ip);
+
 		#check if ip is valid
 		if (! &General::validip($ip)){
 			$errormessage.=$Lang::tr{'fwdfw err tgt_addr'}."<br>";
@@ -606,8 +586,8 @@ sub checktarget
 			return $errormessage;
 		}
 	}elsif($fwdfwsettings{'tgt_addr'} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} && $fwdfwsettings{'tgt_addr'} eq ''){
-		$errormessage.=$Lang::tr{'fwdfw err notgtip'};
-		return $errormessage;
+		$fwdfwsettings{'grp2'}='std_net_tgt';
+		$fwdfwsettings{$fwdfwsettings{'grp2'}} = 'ALL';
 	}
 	#check for mac in targetgroup
 	if ($fwdfwsettings{'grp2'} eq 'cust_grp_tgt'){
@@ -615,7 +595,7 @@ sub checktarget
 		&General::readhasharray("$confighost", \%customhost);
 		foreach my $grpkey (sort keys %customgrp){
 			foreach my $hostkey (sort keys %customhost){
-				if ($customgrp{$grpkey}[2] eq $customhost{$hostkey}[0] && $customhost{$hostkey}[1] eq 'mac'){
+				if ($customgrp{$grpkey}[2] eq $customhost{$hostkey}[0] && $customgrp{$grpkey}[2] eq $fwdfwsettings{$fwdfwsettings{'grp2'}} && $customhost{$hostkey}[1] eq 'mac'){
 					$hint=$Lang::tr{'fwdfw hint mac'};
 					return $hint;
 				}
@@ -824,7 +804,7 @@ sub checkrule
 		$errormessage.=$Lang::tr{'fwdfw err remark'}."<br>";
 	}
 	#check if source and target identical
-	if ($fwdfwsettings{$fwdfwsettings{'grp1'}} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} && $fwdfwsettings{$fwdfwsettings{'grp1'}} ne 'ALL'){
+	if ($fwdfwsettings{$fwdfwsettings{'grp1'}} eq $fwdfwsettings{$fwdfwsettings{'grp2'}} && $fwdfwsettings{$fwdfwsettings{'grp1'}} ne 'ALL' && $fwdfwsettings{'grp2'} ne 'ipfire'){
 		$errormessage=$Lang::tr{'fwdfw err same'};
 		return $errormessage;
 	}
@@ -982,6 +962,12 @@ sub deleterule
 		&base;
 	}
 }
+sub del_double
+{
+	my %all=();
+	@all{@_}=1;
+	return (keys %all);
+}
 sub disable_rule
 {
 	my $key1=shift;
@@ -1049,7 +1035,6 @@ print<<END;
 END
 	foreach my $network (sort keys %defaultNetworks)
 		{
-			next if($defaultNetworks{$network}{'NAME'} eq "RED" && $srctgt eq 'src');
 			next if($defaultNetworks{$network}{'NAME'} eq "IPFire");
 			print "<option value='$defaultNetworks{$network}{'NAME'}'";
 			print " selected='selected'" if ($fwdfwsettings{$fwdfwsettings{$grp}} eq $defaultNetworks{$network}{'NAME'});
@@ -1089,6 +1074,54 @@ END
 		}
 		print"</select></td>";
 	}
+	# geoip locations / groups.
+	my @geoip_locations = &fwlib::get_geoip_locations();
+
+	print "<tr>\n";
+	print "<td valign='top'><input type='radio' name='$grp' id='cust_geoip_$srctgt' value='cust_geoip_$srctgt' $checked{$grp}{'cust_geoip_'.$srctgt}></td>\n";
+	print "<td>$Lang::tr{'geoip'}</td>\n";
+	print "<td align='right'><select name='cust_geoip_$srctgt' style='width:200px;'>\n";
+
+	# Add GeoIP groups to dropdown.
+	if (!-z $configgeoipgrp) {
+		print "<optgroup label='$Lang::tr{'fwhost cust geoipgroup'}'>\n";
+		foreach my $key (sort { ncmp($customgeoipgrp{$a}[0],$customgeoipgrp{$b}[0]) } keys %customgeoipgrp) {
+			my $selected;
+
+			# Generate stored value for select detection.
+			my $stored = join(':', "group",$customgeoipgrp{$key}[0]);
+
+			# Only show a group once and group with elements.
+			if($helper ne $customgeoipgrp{$key}[0] && $customgeoipgrp{$key}[2] ne 'none') {
+				# Mark current entry as selected.
+				if ($fwdfwsettings{$fwdfwsettings{$grp}} eq $stored) {
+					$selected = "selected='selected'";
+				}
+                                print"<option $selected value='group:$customgeoipgrp{$key}[0]'>$customgeoipgrp{$key}[0]</option>\n";
+                        }
+                        $helper=$customgeoipgrp{$key}[0];
+                }
+		print "</optgroup>\n";
+	}
+
+	# Add locations.
+	print "<optgroup label='$Lang::tr{'fwhost cust geoiplocation'}'>\n";
+	foreach my $location (@geoip_locations) {
+		# Get country name.
+		my $country_name = &GeoIP::get_full_country_name($location);
+
+		# Mark current entry as selected.
+		my $selected;
+		if ($fwdfwsettings{$fwdfwsettings{$grp}} eq $location) {
+			$selected = "selected='selected'";
+		}
+		print "<option $selected value='$location'>$location - $country_name</option>\n";
+	}
+	print "</optgroup>\n";
+
+	# Close GeoIP dropdown.
+	print "</select></td>\n";
+
 	#End left table. start right table (vpn)
 	print"</tr></table></td><td valign='top'><table width='95%' border='0' align='right'><tr>";
 	# CCD networks
@@ -1245,10 +1278,8 @@ sub get_serviceports
 	my $name=shift;
 	&General::readhasharray("$configsrv", \%customservice);
 	&General::readhasharray("$configsrvgrp", \%customservicegrp);
-	my $tcp;
-	my $udp;
-	my $icmp;
 	@protocols=();
+	my @specprot=("IPIP","IPV6","IGMP","GRE","AH","ESP");
 	if($type eq 'service'){
 		foreach my $key (sort { ncmp($customservice{$a}[0],$customservice{$b}[0]) } keys %customservice){
 			if ($customservice{$key}[0] eq $name){
@@ -1258,33 +1289,23 @@ sub get_serviceports
 	}elsif($type eq 'group'){
 		foreach my $key (sort { ncmp($customservicegrp{$a}[0],$customservicegrp{$b}[0]) } keys %customservicegrp){
 			if ($customservicegrp{$key}[0] eq $name){
-				foreach my $key1 (sort { ncmp($customservice{$a}[0],$customservice{$b}[0]) } keys %customservice){
-					if ($customservice{$key1}[0] eq $customservicegrp{$key}[2]){
-						if($customservice{$key1}[2] eq 'TCP'){
-							$tcp='TCP';
-						}elsif($customservice{$key1}[2] eq 'ICMP'){
-							$icmp='ICMP';
-						}elsif($customservice{$key1}[2] eq 'UDP'){
-							$udp='UDP';
+				if ($customservicegrp{$key}[2] ~~ @specprot){
+					push (@protocols," ".$customservicegrp{$key}[2]);
+				}else{
+					foreach my $key1 (sort { ncmp($customservice{$a}[0],$customservice{$b}[0]) } keys %customservice){
+						if ($customservice{$key1}[0] eq $customservicegrp{$key}[2]){
+							if (!grep(/$customservice{$key1}[2]/, @protocols)){
+								push (@protocols,$customservice{$key1}[2]);}
 						}
 					}
 				}
 			}
 		}
 	}
-	if($tcp && $udp && $icmp){
-		push (@protocols,"TCP,UDP, <br>ICMP");
-		return @protocols;
-	}
-	if($tcp){
-		push (@protocols,"TCP");
-	}
-	if($udp){
-		push (@protocols,"UDP");
-	}
-	if($icmp){
-		push (@protocols,"ICMP");
-	}
+
+	# Sort protocols alphabetically.
+	@protocols = sort(@protocols);
+
 	return @protocols;
 }
 sub getcolor
@@ -1293,6 +1314,12 @@ sub getcolor
 	my $val=shift;
 	my $hash=shift;
 	if($optionsfw{'SHOWCOLORS'} eq 'on'){
+		# Don't colourise MAC addresses
+		if (&General::validmac($val)) {
+			$tdcolor = "";
+			return;
+		}
+
 		#custom Hosts
 		if ($nettype eq 'cust_host_src' || $nettype eq 'cust_host_tgt'){
 			foreach my $key (sort keys %$hash){
@@ -1325,7 +1352,7 @@ sub getcolor
 			return;
 		}elsif($val =~ /^(.*?)\/(.*?)$/){
 			my ($sip,$scidr) = split ("/",$val);
-			if ( &General::IpInSubnet($sip,$netsettings{'ORANGE_ADDRESS'},$netsettings{'ORANGE_NETMASK'})){
+			if ( &Header::orange_used() && &General::IpInSubnet($sip,$netsettings{'ORANGE_ADDRESS'},$netsettings{'ORANGE_NETMASK'})){
 				$tdcolor="style='background-color: $Header::colourorange;color:white;'";
 				return;
 			}
@@ -1333,7 +1360,7 @@ sub getcolor
 				$tdcolor="style='background-color: $Header::colourgreen;color:white;'";
 				return;
 			}
-			if ( &General::IpInSubnet($sip,$netsettings{'BLUE_ADDRESS'},$netsettings{'BLUE_NETMASK'})){
+			if ( &Header::blue_used() && &General::IpInSubnet($sip,$netsettings{'BLUE_ADDRESS'},$netsettings{'BLUE_NETMASK'})){
 				$tdcolor="style='background-color: $Header::colourblue;color:white;'";
 				return;
 			}
@@ -1380,11 +1407,13 @@ sub getcolor
 			}
 			#Check if IP is part of a IPsec N2N network
 			foreach my $key (sort keys %ipsecconf){
-				my ($a,$b) = split("/",$ipsecconf{$key}[11]);
-				$b=&General::iporsubtodec($b);
-				if (&General::IpInSubnet($c,$a,$b)){
-					$tdcolor="style='background-color: $Header::colourvpn;color:white;'";
-					return;
+				if ($ipsecconf{$key}[11]){
+					my ($a,$b) = split("/",$ipsecconf{$key}[11]);
+					$b=&General::iporsubtodec($b);
+					if (&General::IpInSubnet($c,$a,$b)){
+						$tdcolor="style='background-color: $Header::colourvpn;color:white;'";
+						return;
+					}
 				}
 			}
 		}
@@ -1430,6 +1459,7 @@ sub newrule
 	&General::readhasharray("$confighost", \%customhost);
 	&General::readhasharray("$configccdhost", \%ccdhost);
 	&General::readhasharray("$configgrp", \%customgrp);
+	&General::readhasharray("$configgeoipgrp", \%customgeoipgrp);
 	&General::readhasharray("$configipsec", \%ipsecconf);
 	&General::get_aliases(\%aliases);
 	my %checked=();
@@ -1506,6 +1536,11 @@ sub newrule
 				$fwdfwsettings{'nat'}					= $hash{$key}[31]; #changed order
 				$fwdfwsettings{$fwdfwsettings{'nat'}}	= $hash{$key}[29];
 				$fwdfwsettings{'dnatport'}				= $hash{$key}[30];
+				$fwdfwsettings{'LIMIT_CON_CON'}			= $hash{$key}[32];
+				$fwdfwsettings{'concon'}				= $hash{$key}[33];
+				$fwdfwsettings{'RATE_LIMIT'}			= $hash{$key}[34];
+				$fwdfwsettings{'ratecon'}				= $hash{$key}[35];
+				$fwdfwsettings{'RATETIME'}				= $hash{$key}[36];
 				$checked{'grp1'}{$fwdfwsettings{'grp1'}} 				= 'CHECKED';
 				$checked{'grp2'}{$fwdfwsettings{'grp2'}} 				= 'CHECKED';
 				$checked{'grp3'}{$fwdfwsettings{'grp3'}} 				= 'CHECKED';
@@ -1523,10 +1558,15 @@ sub newrule
 				$checked{'TIME_SUN'}{$fwdfwsettings{'TIME_SUN'}} 		= 'CHECKED';
 				$checked{'USE_NAT'}{$fwdfwsettings{'USE_NAT'}}	 		= 'CHECKED';
 				$checked{'nat'}{$fwdfwsettings{'nat'}}					= 'CHECKED';
+				$checked{'LIMIT_CON_CON'}{$fwdfwsettings{'LIMIT_CON_CON'}}	= 'CHECKED';
+				$checked{'RATE_LIMIT'}{$fwdfwsettings{'RATE_LIMIT'}}	= 'CHECKED';
 				$selected{'TIME_FROM'}{$fwdfwsettings{'TIME_FROM'}}		= 'selected';
 				$selected{'TIME_TO'}{$fwdfwsettings{'TIME_TO'}}			= 'selected';
 				$selected{'ipfire'}{$fwdfwsettings{$fwdfwsettings{'grp2'}}} ='selected';
 				$selected{'ipfire_src'}{$fwdfwsettings{$fwdfwsettings{'grp1'}}} ='selected';
+				$selected{'dnat'}{$fwdfwsettings{'dnat'}}				='selected';
+				$selected{'snat'}{$fwdfwsettings{'snat'}}				='selected';
+				$selected{'RATETIME'}{$fwdfwsettings{'RATETIME'}}		='selected';
 			}
 		}
 		$fwdfwsettings{'oldgrp1a'}=$fwdfwsettings{'grp1'};
@@ -1539,6 +1579,11 @@ sub newrule
 		$fwdfwsettings{'oldruleremark'}=$fwdfwsettings{'ruleremark'};
 		$fwdfwsettings{'oldnat'}=$fwdfwsettings{'USE_NAT'};
 		$fwdfwsettings{'oldruletype'}=$fwdfwsettings{'chain'};
+		$fwdfwsettings{'oldconcon'}=$fwdfwsettings{'LIMIT_CON_CON'};
+		$fwdfwsettings{'olduseratelimit'}=$fwdfwsettings{'RATE_LIMIT'};
+		$fwdfwsettings{'olduseratelimitamount'}=$fwdfwsettings{'ratecon'};
+		$fwdfwsettings{'oldratelimittime'}=$fwdfwsettings{'RATETIME'};
+
 		#check if manual ip (source) is orange network
 		if ($fwdfwsettings{'grp1'} eq 'src_addr'){
 			my ($sip,$scidr) = split("/",$fwdfwsettings{$fwdfwsettings{'grp1'}});
@@ -1560,6 +1605,7 @@ sub newrule
 		$fwdfwsettings{'oldusesrv'}=$fwdfwsettings{'USESRV'};
 		$fwdfwsettings{'oldruleremark'}=$fwdfwsettings{'ruleremark'};
 		$fwdfwsettings{'oldnat'}=$fwdfwsettings{'USE_NAT'};
+		$fwdfwsettings{'oldconcon'}=$fwdfwsettings{'LIMIT_CON_CON'};
 		#check if manual ip (source) is orange network
 		if ($fwdfwsettings{'grp1'} eq 'src_addr'){
 			my ($sip,$scidr) = split("/",$fwdfwsettings{$fwdfwsettings{'grp1'}});
@@ -1572,7 +1618,7 @@ sub newrule
 	my ($sip,$scidr) = split("/",$fwdfwsettings{$fwdfwsettings{'grp1'}});
 	if ($scidr eq '32'){$fwdfwsettings{$fwdfwsettings{'grp1'}}=$sip;}
 	my ($dip,$dcidr) = split("/",$fwdfwsettings{$fwdfwsettings{'grp2'}});
-	if ($scidr eq '32'){$fwdfwsettings{$fwdfwsettings{'grp2'}}=$dip;}
+	if ($dcidr eq '32'){$fwdfwsettings{$fwdfwsettings{'grp2'}}=$dip;}
 	&Header::openbox('100%', 'left', $Lang::tr{'fwdfw source'});
 	#------SOURCE-------------------------------------------------------
 	print "<form method='post'>";
@@ -1589,7 +1635,7 @@ END
 		if (! -z "${General::swroot}/ethernet/aliases"){
 			foreach my $alias (sort keys %aliases)
 			{
-				print "<option value='$alias' $selected{'ipfire'}{$alias}>$alias</option>";
+				print "<option value='$alias' $selected{'ipfire_src'}{$alias}>$alias ($aliases{$alias}{'IPT'})</option>";
 			}
 		}
 		print<<END;
@@ -1608,7 +1654,7 @@ END
 				$Lang::tr{'fwdfw use nat'}
 			</label>
 			<div class="NAT">
-				<table width='100%' border='0'>
+				<table class='fw-nat' width='100%' border='0'>
 					<tr>
 						<td width='5%'></td>
 						<td width='40%'>
@@ -1619,25 +1665,28 @@ END
 						</td>
 END
 
-		if (%aliases) {
-			print <<END;
-						<td width='25%' align='right'>$Lang::tr{'dnat address'}:</td>
+	print <<END;
+						<td width='25%' align='right'><span class='dnat'>$Lang::tr{'dnat address'}:</span></td>
 						<td width='30%'>
-							<select name='dnat' style='width: 100%;'>
-								<option value='Default IP' $selected{'dnat'}{'Default IP'}>$Lang::tr{'default ip'} ($netsettings{'RED_ADDRESS'})</option>
+							<select name='dnat' class='dnat' style='width: 100%;'>
+								<option value='AUTO' $selected{'dnat'}{'AUTO'}>- $Lang::tr{'automatic'} -</option>
+								<option value='Default IP' $selected{'dnat'}{'Default IP'}>$Lang::tr{'red1'} ($redip)</option>
 END
+		if (%aliases) {
 			foreach my $alias (sort keys %aliases) {
 				print "<option value='$alias' $selected{'dnat'}{$alias}>$alias ($aliases{$alias}{'IPT'})</option>";
 			}
-
-			print "</select>";
-		} else {
-			print <<END;
-						<td colspan="2" width='55%'>
-							<input type='hidden' name='dnat' value='Default IP'>
-						</td>
-END
 		}
+		#DNAT Dropdown
+		foreach my $network (sort keys %defaultNetworks)
+		{
+			if ($defaultNetworks{$network}{'NAME'} eq 'BLUE'||$defaultNetworks{$network}{'NAME'} eq 'GREEN' ||$defaultNetworks{$network}{'NAME'} eq 'ORANGE'){
+				print "<option value='$defaultNetworks{$network}{'NAME'}'";
+				print " selected='selected'" if ($fwdfwsettings{'dnat'} eq $defaultNetworks{$network}{'NAME'});
+				print ">$network ($defaultNetworks{$network}{'NET'})</option>";
+			}
+		}
+		print "</select>";
 		print "</tr>";
 
 		#SNAT
@@ -1650,27 +1699,22 @@ END
 								$Lang::tr{'fwdfw snat'}
 							</label>
 						</td>
-						<td width='25%' align='right'>$Lang::tr{'snat new source ip address'}:</td>
+						<td width='25%' align='right'><span class='snat'>$Lang::tr{'snat new source ip address'}:</span></td>
 						<td width='30%'>
-							<select name='snat' style='width: 100%;'>
+							<select name='snat' class='snat' style='width: 100%;'>
 END
 
 		foreach my $alias (sort keys %aliases) {
 			print "<option value='$alias' $selected{'snat'}{$alias}>$alias ($aliases{$alias}{'IPT'})</option>";
 		}
-
-		# XXX this is composed in a very ugly fashion
+		# SNAT Dropdown
 		foreach my $network (sort keys %defaultNetworks) {
-			next if($defaultNetworks{$network}{'NAME'} eq "IPFire");
-			next if($defaultNetworks{$network}{'NAME'} eq "ALL");
-			next if($defaultNetworks{$network}{'NAME'} =~ /OpenVPN/i);
-			next if($defaultNetworks{$network}{'NAME'} =~ /IPsec/i);
-
-			print "<option value='$defaultNetworks{$network}{'NAME'}'";
-			print " selected='selected'" if ($fwdfwsettings{$fwdfwsettings{'nat'}} eq $defaultNetworks{$network}{'NAME'});
-			print ">$network ($defaultNetworks{$network}{'NET'})</option>";
+			if ($defaultNetworks{$network}{'NAME'} eq 'BLUE'||$defaultNetworks{$network}{'NAME'} eq 'GREEN' ||$defaultNetworks{$network}{'NAME'} eq 'ORANGE'){
+				print "<option value='$defaultNetworks{$network}{'NAME'}'";
+				print " selected='selected'" if ($fwdfwsettings{'snat'} eq $defaultNetworks{$network}{'NAME'});
+				print ">$network ($defaultNetworks{$network}{'NET'})</option>";
+			}
 		}
-
 		print <<END;
 							</select>
 						</td>
@@ -1695,7 +1739,7 @@ END
 		if (! -z "${General::swroot}/ethernet/aliases"){
 			foreach my $alias (sort keys %aliases)
 			{
-				print "<option value='$alias' $selected{'ipfire'}{$alias}>$alias</option>";
+				print "<option value='$alias' $selected{'ipfire'}{$alias}>$alias ($aliases{$alias}{'IPT'})</option>";
 			}
 		}
 		print<<END;
@@ -2001,6 +2045,44 @@ END
 					</table>
 				</td>
 			</tr>
+			<tr>
+				<td width='1%'>
+					<input type='checkbox' name='LIMIT_CON_CON' id="USE_LIMIT_CONCURRENT_CONNECTIONS_PER_IP" value='ON' $checked{'LIMIT_CON_CON'}{'ON'}>
+				</td>
+				<td>$Lang::tr{'fwdfw limitconcon'}</td>
+			</tr>
+			<tr id="LIMIT_CON">
+				<td colspan='2'>
+					<table width='66%' border='0'>
+						<tr>
+							<td width="20em">&nbsp;</td>
+							<td>$Lang::tr{'fwdfw maxconcon'}: <input type='text' name='concon' size='2' value="$fwdfwsettings{'concon'}"></td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td width='1%'>
+					<input type='checkbox' name='RATE_LIMIT' id="USE_RATELIMIT" value='ON' $checked{'RATE_LIMIT'}{'ON'}>
+				</td>
+				<td>$Lang::tr{'fwdfw ratelimit'}</td>
+			</tr>
+			<tr id="RATELIMIT">
+				<td colspan='2'>
+					<table width='66%' border='0'>
+						<tr>
+							<td width="20em">&nbsp;</td>
+							<td>$Lang::tr{'fwdfw numcon'}: <input type='text' name='ratecon' size='2' value="$fwdfwsettings{'ratecon'}"> /
+								<select name='RATETIME' style='width:100px;'>
+									<option value='second' $selected{'RATETIME'}{'second'}>$Lang::tr{'age second'}</option>
+									<option value='minute' $selected{'RATETIME'}{'minute'}>$Lang::tr{'minute'}</option>
+									<option value='hour' $selected{'RATETIME'}{'hour'}>$Lang::tr{'hour'}</option>
+								</select>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
 		</table>
 		<br>
 END
@@ -2033,6 +2115,7 @@ END
 			<input type='hidden' name='oldorange' value='$fwdfwsettings{'oldorange'}' />
 			<input type='hidden' name='oldnat' value='$fwdfwsettings{'oldnat'}' />
 			<input type='hidden' name='oldruletype' value='$fwdfwsettings{'oldruletype'}' />
+			<input type='hidden' name='oldconcon' value='$fwdfwsettings{'oldconcon'}' />
 			<input type='hidden' name='ACTION' value='saverule' ></form><form method='post' style='display:inline'><input type='submit' value='$Lang::tr{'fwhost back'}' style='min-width:100px;'><input type='hidden' name='ACTION' value'reset'></td></td>
 			</table></form>
 END
@@ -2132,6 +2215,9 @@ sub saverule
 			&changerule($configfwdfw);
 			#print"6";
 		}
+		$fwdfwsettings{'ruleremark'}=~ s/,/;/g;
+		utf8::decode($fwdfwsettings{'ruleremark'});
+		$fwdfwsettings{'ruleremark'}=&Header::escape($fwdfwsettings{'ruleremark'});
 		if ($fwdfwsettings{'updatefwrule'} ne 'on'){
 			my $key = &General::findhasharraykey ($hash);
 			$$hash{$key}[0]  = $fwdfwsettings{'RULE_ACTION'};
@@ -2166,6 +2252,11 @@ sub saverule
 			$$hash{$key}[29] = $fwdfwsettings{$fwdfwsettings{'nat'}};
 			$$hash{$key}[30] = $fwdfwsettings{'dnatport'};
 			$$hash{$key}[31] = $fwdfwsettings{'nat'};
+			$$hash{$key}[32] = $fwdfwsettings{'LIMIT_CON_CON'};
+			$$hash{$key}[33] = $fwdfwsettings{'concon'};
+			$$hash{$key}[34] = $fwdfwsettings{'RATE_LIMIT'};
+			$$hash{$key}[35] = $fwdfwsettings{'ratecon'};
+			$$hash{$key}[36] = $fwdfwsettings{'RATETIME'};
 			&General::writehasharray("$config", $hash);
 		}else{
 			foreach my $key (sort {$a <=> $b} keys %$hash){
@@ -2202,6 +2293,11 @@ sub saverule
 					$$hash{$key}[29] = $fwdfwsettings{$fwdfwsettings{'nat'}};
 					$$hash{$key}[30] = $fwdfwsettings{'dnatport'};
 					$$hash{$key}[31] = $fwdfwsettings{'nat'};
+					$$hash{$key}[32] = $fwdfwsettings{'LIMIT_CON_CON'};
+					$$hash{$key}[33] = $fwdfwsettings{'concon'};
+					$$hash{$key}[34] = $fwdfwsettings{'RATE_LIMIT'};
+					$$hash{$key}[35] = $fwdfwsettings{'ratecon'};
+					$$hash{$key}[36] = $fwdfwsettings{'RATETIME'};
 					last;
 				}
 			}
@@ -2267,30 +2363,27 @@ sub saverule
 sub validremark
 {
 	# Checks a hostname against RFC1035
-        my $remark = $_[0];
+	my $remark = $_[0];
 
-	# Each part should be at least two characters in length
-	# but no more than 63 characters
-	if (length ($remark) < 1 || length ($remark) > 255) {
-		return 0;}
-	# Only valid characters are a-z, A-Z, 0-9 and -
-	if ($remark !~ /^[a-zäöüA-ZÖÄÜ0-9-.:;\|_()\/\s]*$/) {
-		return 0;}
-	# First character can only be a letter or a digit
-	if (substr ($remark, 0, 1) !~ /^[a-zäöüA-ZÖÄÜ0-9(]*$/) {
-		return 0;}
-	# Last character can only be a letter or a digit
-	if (substr ($remark, -1, 1) !~ /^[a-zöäüA-ZÖÄÜ0-9.:;_)]*$/) {
-		return 0;}
-	return 1;
+	# Try to decode $remark into UTF-8. If this doesn't work,
+	# we assume that the string it not sane.
+	if (!utf8::decode($remark)) {
+		return 0;
+	}
+
+	# Check if the string only contains of printable characters.
+	if ($remark =~ /^[[:print:]]*$/) {
+		return 1;
+	}
+	return 0;
 }
 sub viewtablerule
 {
 	&General::readhash("/var/ipfire/ethernet/settings", \%netsettings);
 
 	&viewtablenew(\%configfwdfw, $configfwdfw, $Lang::tr{'firewall rules'});
-	&viewtablenew(\%configinputfw, $configinput, $Lang::tr{'external access'});
-	&viewtablenew(\%configoutgoingfw, $configoutgoing, $Lang::tr{'outgoing firewall'});
+	&viewtablenew(\%configinputfw, $configinput, $Lang::tr{'incoming firewall access'});
+	&viewtablenew(\%configoutgoingfw, $configoutgoing, $Lang::tr{'outgoing firewall access'});
 }
 sub viewtablenew
 {
@@ -2362,26 +2455,18 @@ END
 				if($$hash{$key}[3] eq  'ipsec_net_src'){
 					if(&fwlib::get_ipsec_net_ip($host,11) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}elsif($$hash{$key}[3] eq  'ovpn_net_src'){
 					if(&fwlib::get_ovpn_net_ip($host,1) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}elsif($$hash{$key}[3] eq  'ovpn_n2n_src'){
 					if(&fwlib::get_ovpn_n2n_ip($host,27) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}elsif($$hash{$key}[3] eq  'ovpn_host_src'){
 					if(&fwlib::get_ovpn_host_ip($host,33) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}
 			}
@@ -2389,26 +2474,18 @@ END
 				if($$hash{$key}[5] eq 'ipsec_net_tgt'){
 					if(&fwlib::get_ipsec_net_ip($host,11) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}elsif($$hash{$key}[5] eq 'ovpn_net_tgt'){
 					if(&fwlib::get_ovpn_net_ip($host,1) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}elsif($$hash{$key}[5] eq 'ovpn_n2n_tgt'){
 					if(&fwlib::get_ovpn_n2n_ip($host,27) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}elsif($$hash{$key}[5] eq 'ovpn_host_tgt'){
 					if(&fwlib::get_ovpn_host_ip($host,33) eq ''){
 						$coloryellow='on';
-						&disable_rule($key);
-						$$hash{$key}[2]='';
 					}
 				}
 			}
@@ -2416,15 +2493,11 @@ END
 			foreach my $netgroup (sort keys %customgrp){
 				if(($$hash{$key}[4] eq $customgrp{$netgroup}[0] || $$hash{$key}[6] eq $customgrp{$netgroup}[0]) && $customgrp{$netgroup}[2] eq 'none'){
 					$coloryellow='on';
-					&disable_rule($key);
-					$$hash{$key}[2]='';
 				}
 			}
 			foreach my $srvgroup (sort keys %customservicegrp){
 				if($$hash{$key}[15] eq $customservicegrp{$srvgroup}[0] && $customservicegrp{$srvgroup}[2] eq 'none'){
 					$coloryellow='on';
-					&disable_rule($key);
-					$$hash{$key}[2]='';
 				}
 			}
 			$$hash{'ACTIVE'}=$$hash{$key}[2];
@@ -2484,7 +2557,7 @@ END
 				push (@protocols,$Lang::tr{'all'});
 			}
 
-			my $protz=join(",",@protocols);
+			my $protz=join(", ",@protocols);
 			if($protz eq 'ICMP' && $$hash{$key}[9] ne 'All ICMP-Types' && $$hash{$key}[14] ne 'cust_srvgrp'){
 				&General::readhasharray("${General::swroot}/fwhosts/icmp-types", \%icmptypes);
 				foreach my $keyicmp (sort { ncmp($icmptypes{$a}[0],$icmptypes{$b}[0]) }keys %icmptypes){
@@ -2493,6 +2566,8 @@ END
 						last;
 					}
 				}
+			}elsif($#protocols gt '3'){
+				print"<td align='center'><span title='$protz'>$Lang::tr{'fwdfw many'}</span></td>";
 			}else{
 				print"<td align='center'>$protz</td>";
 			}
@@ -2512,6 +2587,13 @@ END
 					print $split1;
 				}else{
 					print $$hash{$key}[4];
+				}
+			}elsif ($$hash{$key}[3] eq 'cust_geoip_src') {
+				my ($split1,$split2) = split(":", $$hash{$key}[4]);
+				if ($split2) {
+					print "$split2\n";
+				}else{
+					print "$Lang::tr{'geoip'}: $$hash{$key}[4]\n";
 				}
 			}elsif ($$hash{$key}[4] eq 'RED1'){
 				print "$ipfireiface $Lang::tr{'fwdfw red'}";
@@ -2559,8 +2641,21 @@ END
 					<td align='center' $tdcolor>
 END
 			#Is this a DNAT rule?
+			my $natstring;
 			if ($$hash{$key}[31] eq 'dnat' && $$hash{$key}[28] eq 'ON'){
-				print "Firewall ($$hash{$key}[29])";
+				if ($$hash{$key}[29] eq 'Default IP'){$$hash{$key}[29]=$Lang::tr{'red1'};}
+				if ($$hash{$key}[29] eq 'AUTO'){
+					my @src_addresses=&fwlib::get_addresses(\%$hash,$key,'src');
+					my @nat_ifaces;
+					foreach my $val (@src_addresses){
+						push (@nat_ifaces,&fwlib::get_nat_address($$hash{$key}[29],$val));
+					}
+					@nat_ifaces=&del_double(@nat_ifaces);
+					$natstring = "";
+				}else{
+					$natstring = "($$hash{$key}[29])";
+				}
+				print "$Lang::tr{'firewall'} $natstring";
 				if($$hash{$key}[30] ne ''){
 					$$hash{$key}[30]=~ tr/|/,/;
 					print": $$hash{$key}[30]";
@@ -2575,6 +2670,13 @@ END
 					print &get_name($$hash{$key}[6]);
 				}else{
 					print $$hash{$key}[6];
+				}
+			}elsif ($$hash{$key}[5] eq 'cust_geoip_tgt') {
+				my ($split1,$split2) = split(":", $$hash{$key}[6]);
+				if ($split2) {
+					print "$split2\n";
+				}else{
+					print "$Lang::tr{'geoip'}: $$hash{$key}[6]\n";
 				}
 			}elsif ($$hash{$key}[5] eq 'tgt_addr'){
 				my ($split1,$split2) = split("/",$$hash{$key}[6]);
@@ -2593,7 +2695,6 @@ END
 			#RULE ACTIVE
 			if($$hash{$key}[2] eq 'ON'){
 				$gif="/images/on.gif"
-				
 			}else{
 				$gif="/images/off.gif"
 			}
@@ -2716,7 +2817,7 @@ END
 				<td colspan='13'>&nbsp;</td>
 			</tr>
 			<tr>
-				<td colspan='13' style="padding-left:0px;">
+				<td colspan='13' style="padding-left:0px;padding-right:0px">
 					<table width="100%" border='1' rules="cols" cellspacing='0'>
 END
 
@@ -2799,14 +2900,16 @@ END
 						<font color="$Header::colourorange">$Lang::tr{'orange'}</font>
 						($Lang::tr{'fwdfw pol block'})
 					</td>
+END
+			}
+
+			print <<END;
 					<td align='center'>
 						<font color="$Header::colourgreen">$Lang::tr{'green'}</font>
 						($Lang::tr{'fwdfw pol block'})
 					</td>
+				</tr>
 END
-			}
-
-			print"</tr>";
 		}
 
 		print <<END;

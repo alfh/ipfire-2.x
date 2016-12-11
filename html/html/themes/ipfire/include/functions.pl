@@ -70,8 +70,8 @@ sub showmenu() {
 		print <<EOF;
 			<div id='traffic'>
 				<strong>Traffic:</strong>
-				In  <span id='rx_kbs'>--.-- Bit/s</span> &nbsp;
-				Out <span id='tx_kbs'>--.-- Bit/s</span>
+				In  <span id='rx_kbs'>--.-- bit/s</span> &nbsp;
+				Out <span id='tx_kbs'>--.-- bit/s</span>
 			</div>
 EOF
 	}
@@ -80,7 +80,7 @@ EOF
 	foreach my $k1 ( sort keys %$menu ) {
 		$link = getlink($menu->{$k1});
 		next if (!is_menu_visible($link) or $link eq '');
-		print '<li class="has-sub "><a><span>'.$menu->{$k1}->{'caption'}.'</span></a>';
+		print '<li class="has-sub "><a href="#"><span>'.$menu->{$k1}->{'caption'}.'</span></a>';
 		my $submenus = $menu->{$k1}->{'subMenu'};
 		&showsubmenu($submenus) if ($submenus);
 		print "</li>";
@@ -110,7 +110,7 @@ sub openpage {
 	&genmenu();
 
 	my $headline = "IPFire";
-	if ($settings{'WINDOWWITHHOSTNAME'} eq 'on') {
+	if (($settings{'WINDOWWITHHOSTNAME'} eq 'on') || ($settings{'WINDOWWITHHOSTNAME'} eq '')) {
 		$headline =  "$settings{'HOSTNAME'}.$settings{'DOMAINNAME'}";
 	}
 
@@ -128,6 +128,12 @@ print <<END;
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 	<link rel="shortcut icon" href="/favicon.ico" />
 	<script type="text/javascript" src="/include/jquery.js"></script>
+
+	<script type="text/javascript">
+		function swapVisibility(id) {
+			\$('#' + id).toggle();
+		}
+	</script>
 END
 
 	foreach my $stylesheet (@stylesheets) {
@@ -146,12 +152,14 @@ print <<END
 	<body>
 		<div id="header" class="fixed">
 			<div id="logo">
+				<a href="http://www.ipfire.org" style="text-decoration: none;">
+					<img src="/themes/ipfire/images/tux2.png" style="float:left; margin-left: -3px; margin-top: -3px;"/>
 END
 ;
 	if ($settings{'WINDOWWITHHOSTNAME'} ne 'off') {
-		print "<h1>$settings{'HOSTNAME'}.$settings{'DOMAINNAME'}</h1>";
+		print "</a><h1>$settings{'HOSTNAME'}.$settings{'DOMAINNAME'}</h1>";
 	} else {
-		print "<h1>IPFire</h1>";
+		print "<h1>IPFire</h1></a>";
 	}
 
 print <<END
@@ -188,7 +196,7 @@ sub openpagewithoutmenu {
 sub closepage () {
 	open(FILE, "</etc/system-release");
 	my $system_release = <FILE>;
-	$system_release =~ s/core/Core Update/;
+	$system_release =~ s/core/Core Update /;
 	close(FILE);
 
 print <<END;
@@ -232,7 +240,12 @@ sub openbox {
 	$align = $_[1];
 	$caption = $_[2];
 
-	print "<div class='post' align='$align'>\n";
+	if($align eq 'center') {
+		print "<div class='post' align='center'>\n"
+	}
+	else {
+		print "<div class='post'>\n";
+	}
 
 	if ($caption) {
 		print "<h2>$caption</h2>\n";

@@ -34,6 +34,13 @@ require '/var/ipfire/general-functions.pl';	# replace /var/ipcop with /var/ipcop
 require "${General::swroot}/lang.pl";
 require "${General::swroot}/header.pl";
 
+my $configfwdfw		= "${General::swroot}/firewall/config";
+my $configinput		= "${General::swroot}/firewall/input";
+my $configoutgoing	= "${General::swroot}/firewall/outgoing";
+my %input=();
+my %forward=();
+my %output=();
+
 #workaround to suppress a warning when a variable is used only once
 my @dummy = ( ${Header::colouryellow} );
    @dummy = ( ${Header::table1colour} );
@@ -90,7 +97,6 @@ if ($settings{'ACTION'} eq $Lang::tr{'save'}) {
     #
     #Validate static Settings1 here
     #
-    
     unless ($errormessage) {					# Everything is ok, save settings
 	#map (delete ($settings{$_}) ,(@nosaved,'ACTION','KEY1'));# Must never be saved 
 	#&General::writehash($setting, \%settings);		# Save good settings
@@ -146,6 +152,12 @@ if ($settings{'ACTION'} eq $Lang::tr{'add'}) {
 	$errormessage = $Lang::tr{'duplicate ip'} . ' (RED)';
         $spacer=" & ";
     }
+    #Check if we have an emtpy name
+    if (!$settings{'NAME'}){
+		$errormessage=$Lang::tr{'fwhost err name1'};
+	}elsif(! &General::validfqdn($settings{'NAME'}) && ! &General::validhostname($settings{'NAME'})){
+		$errormessage=$Lang::tr{'invalid hostname'};
+	}
     my $idx=0;
     foreach my $line (@current) {
         chomp ($line);
@@ -162,6 +174,38 @@ if ($settings{'ACTION'} eq $Lang::tr{'add'}) {
 	}
 	$idx++;
     }
+	#Update firewallrules if aliasname is changed
+	if ($settings{'OLDNAME'} ne $settings {'NAME'}){
+		&General::readhasharray("$configfwdfw", \%forward);
+		&General::readhasharray("$configinput", \%input);
+		&General::readhasharray("$configoutgoing", \%output);
+		#Check FORWARD
+		foreach my $forwardkey (sort keys %forward){
+			if ($forward{$forwardkey}[29] eq $settings{'OLDNAME'}){
+				$forward{$forwardkey}[29] = $settings {'NAME'};
+			}
+		}
+		&General::writehasharray($configfwdfw, \%forward);
+		#Check INPUT
+		foreach my $inputkey (sort keys %input){
+			if ($input{$inputkey}[6] eq $settings{'OLDNAME'}){
+				$input{$inputkey}[6] = $settings {'NAME'};
+			}
+		}
+		&General::writehasharray($configinput, \%input);
+		#Check OUTPUT
+		foreach my $outputkey (sort keys %output){
+			if ($output{$outputkey}[4] eq $settings{'OLDNAME'}){
+				$output{$outputkey}[4] = $settings {'NAME'};
+			}
+		}
+		&General::writehasharray($configoutgoing, \%output);
+		&General::firewall_config_changed;
+	}
+	#If Alias IP has changed, set firewall_config_changed
+	if($settings{'OLDIP'} ne $settings{'IP'} && $settings{'OLDIP'}){
+		&General::firewall_config_changed;
+	}
     unless ($errormessage) {
 	if ($settings{'KEY1'} eq '') { #add or edit ?
 	    unshift (@current, "$settings{'IP'},$settings{'ENABLED'},$settings{'NAME'}\n");
@@ -241,16 +285,16 @@ my %checked =();     # Checkbox manipulations
 
 if ($errormessage) {
     &Header::openbox('100%', 'left', $Lang::tr{'error messages'});
-    print "<font class='base'>$errormessage&nbsp;</font>";
+    print "$errormessage&nbsp;";
     &Header::closebox();
 }
 unless (( $netsettings{'CONFIG_TYPE'} =~ /^(1|2|3|4)$/ ) && ($netsettings{'RED_TYPE'} eq 'STATIC'))
 {
     &Header::openbox('100%', 'left', $Lang::tr{'capswarning'});
     print <<END
-    <table width='100%'>
+    <table style='width:100%;'>
     <tr>
-    <td width='100%' class='boldbase' align='center'><font color='${Header::colourred}'><b>$Lang::tr{'aliases not active'}</b></font></td>
+    <td class='boldbase' style='color:${Header::colourred};'><b>$Lang::tr{'aliases not active'}</b></td>
     </tr>
     </table>
 END
@@ -275,23 +319,23 @@ if ($settings{'KEY1'} ne '') {
 print <<END
 <form method='post' action='$ENV{'SCRIPT_NAME'}'>
 <input type='hidden' name='KEY1' value='$settings{'KEY1'}' />
-<table width='100%'>
+<input type='hidden' name='OLDNAME' value='$settings{'NAME'}' />
+<input type='hidden' name='OLDIP' value='$settings{'IP'}' />
+<table style='width:100%;'>
 <tr>
-<td class='base'><font color='${Header::colourred}'>$Lang::tr{'name'}:&nbsp;<img src='/blob.gif' alt='*' /></font></td>
+<td class='base' style='color:${Header::colourred};'>$Lang::tr{'name'}:</td>
 <td><input type='text' name='NAME' value='$settings{'NAME'}' size='32' /></td>
-<td class='base' align='right'><font color='${Header::colourred}'>$Lang::tr{'alias ip'}:&nbsp;</font></td>
+<td class='base' style='text-align:right; color:${Header::colourred};'>$Lang::tr{'alias ip'}:&nbsp;</td>
 <td><input type='text' name='IP' value='$settings{'IP'}' size='16' /></td>
-<td class='base' align='right'>$Lang::tr{'enabled'}&nbsp;</td>
+<td class='base' style='text-align:right;'>$Lang::tr{'enabled'}&nbsp;</td>
 <td><input type='checkbox' name='ENABLED' $checked{'ENABLED'}{'on'} /></td>
 </tr>
 </table>
 <br>
 <hr />
-<table width='100%'>
+<table style='width:100%;'>
 <tr>
-    <td class='base' width='55%'><img src='/blob.gif' align='top' alt='*' />&nbsp;$Lang::tr{'this field may be blank'}</td>
-    <td width='40%' align='right'><input type='hidden' name='ACTION' value='$Lang::tr{'add'}' /><input type='submit' name='SUBMIT' value='$buttontext' /></td>
-    </td>
+    <td style='text-align:right;'><input type='hidden' name='ACTION' value='$Lang::tr{'add'}' /><input type='submit' name='SUBMIT' value='$buttontext' /></td>
 </tr>
 </table>
 </form>
@@ -320,11 +364,11 @@ if ($netsettings{'SORT_ALIASES'} eq 'NAMERev') {
 #
 &Header::openbox('100%', 'left', $Lang::tr{'current aliases'});
 print <<END
-<table width='100%' class='tbl'>
+<table class='tbl' style='width:100%;'>
 <tr>
-    <th width='50%' align='center'><a href='$ENV{'SCRIPT_NAME'}?NAME'><b>$Lang::tr{'name'}</b></a> $sortarrow1</th>
-    <th width='45%' align='center'><a href='$ENV{'SCRIPT_NAME'}?IP'><b>$Lang::tr{'alias ip'}</b></a> $sortarrow2</th>
-    <th width='5%' colspan='3' class='boldbase' align='center'><b>$Lang::tr{'action'}</b></th>
+    <th style='width:55%; text-align:center;'><a href='$ENV{'SCRIPT_NAME'}?NAME'><b>$Lang::tr{'name'}</b></a> $sortarrow1</th>
+    <th style='width:45%; text-align:center;'><a href='$ENV{'SCRIPT_NAME'}?IP'><b>$Lang::tr{'alias ip'}</b></a> $sortarrow2</th>
+    <th colspan='3' class='boldbase' style='width:5%; text-align:center;'><b>$Lang::tr{'action'}</b></th>
 </tr>
 END
 ;
@@ -354,21 +398,19 @@ foreach my $line (@current) {
 
     #Colorize each line
     if ($settings{'KEY1'} eq $key) {
-	print "<tr>";
-	$col="bgcolor='${Header::colouryellow}'";
+        $col="background-color:${Header::colouryellow};";
     } elsif ($key % 2) {
-	print "<tr>";
-	$col="bgcolor='${Header::table2colour}'";
+        $col="background-color:${Header::table2colour};";
     } else {
-	print "<tr>";
-	$col="bgcolor='${Header::table1colour}'";
+        $col="background-color:${Header::table1colour};";
     }
+    print "<tr style='$col'>";
 
     print <<END
-<td align='center' $col>$temp[2]</td>
-<td align='center' $col>$temp[0]</td>
+<td style='text-align:center; $col'>$temp[2]</td>
+<td style='text-align:center; $col'>$temp[0]</td>
 
-<td align='center' $col>
+<td style='text-align:center; $col'>
 <form method='post' action='$ENV{'SCRIPT_NAME'}'>
 <input type='hidden' name='ACTION' value='$Lang::tr{'toggle enable disable'}' />
 <input type='image' name='$Lang::tr{'toggle enable disable'}' src='/images/$gif' alt='$gdesc' title='$gdesc' />
@@ -376,7 +418,7 @@ foreach my $line (@current) {
 </form>
 </td>
 
-<td align='center' $col>
+<td style='text-align:center; $col'>
 <form method='post' action='$ENV{'SCRIPT_NAME'}'>
 <input type='hidden' name='ACTION' value='$Lang::tr{'edit'}' />
 <input type='image' name='$Lang::tr{'edit'}' src='/images/edit.gif' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' />
@@ -384,7 +426,7 @@ foreach my $line (@current) {
 </form>
 </td>
 
-<td align='center' $col>
+<td style='text-align:center; $col'>
 <form method='post' action='$ENV{'SCRIPT_NAME'}'>
 <input type='hidden' name='ACTION' value='$Lang::tr{'remove'}' />
 <input type='image' name='$Lang::tr{'remove'}' src='/images/delete.gif' alt='$Lang::tr{'remove'}' title='$Lang::tr{'remove'}' />
@@ -514,3 +556,4 @@ sub BuildConfiguration {
     # Restart service associated with this
     system '/usr/local/bin/setaliases';
 }
+

@@ -251,13 +251,13 @@ END
 if ($qossettings{'DOLEVEL7'} eq $Lang::tr{'save'})
 {
 	if ( $qossettings{'QIP'} ne '' ) {
-		unless ( &General::validip($qossettings{'QIP'}) ) {
+		if ((!&General::validipandmask($qossettings{'QIP'})) && (!&General::validip($qossettings{'QIP'}))) {
 			$qossettings{'VALID'} = 'no';
 			$message = $Lang::tr{'The source IP address is invalid.'};
 		}
 	}
 	if ( $qossettings{'DIP'} ne '' ) {
-		unless ( &General::validip($qossettings{'DIP'}) ) {
+		if ((!&General::validipandmask($qossettings{'DIP'})) && (!&General::validip($qossettings{'DIP'}))) {
 			$qossettings{'VALID'} = 'no';
 			$message = $Lang::tr{'The destination IP address is invalid.'};
 		}
@@ -326,15 +326,15 @@ END
 if ($qossettings{'DOPORT'} eq $Lang::tr{'save'})
 {
 	if ( $qossettings{'QIP'} ne '' ) {
-		unless ( &General::validip($qossettings{'QIP'}) ) {
+		if ((!&General::validipandmask($qossettings{'QIP'})) && (!&General::validip($qossettings{'QIP'}))) {
 			$qossettings{'VALID'} = 'no';
-			$message = "$Lang::tr{'The source IP address is invalid.'}";
+			$message = $Lang::tr{'The source IP address is invalid.'};
 		}
 	}
 	if ( $qossettings{'DIP'} ne '' ) {
-		unless ( &General::validip($qossettings{'DIP'}) ) {
+		if ((!&General::validipandmask($qossettings{'DIP'})) && (!&General::validip($qossettings{'DIP'}))) {
 			$qossettings{'VALID'} = 'no';
-			$message = "$Lang::tr{'The destination IP address is invalid.'}";
+			$message = $Lang::tr{'The destination IP address is invalid.'};
 		}
 	}
 	if ($qossettings{'CLASS'} >= 100 && $qossettings{'CLASS'} < 121) {
@@ -463,18 +463,16 @@ if ($qossettings{'ACTION'} eq $Lang::tr{'start'})
 	$qossettings{'ENABLED'} = 'on';
 	&General::writehash("${General::swroot}/qos/settings", \%qossettings);
 	system("/usr/local/bin/qosctrl generate >/dev/null 2>&1");
-	system("/usr/bin/touch /var/ipfire/qos/enable");
 	system("/usr/local/bin/qosctrl start >/dev/null 2>&1");
 	system("logger -t ipfire 'QoS started'");
 }
 elsif ($qossettings{'ACTION'} eq $Lang::tr{'stop'})
 {
-	system("/usr/local/bin/qosctrl stop >/dev/null 2>&1");
-	unlink "/var/ipfire/qos/bin/qos.sh";
-	unlink "/var/ipfire/qos/enable";
-	system("logger -t ipfire 'QoS stopped'");
 	$qossettings{'ENABLED'} = 'off';
 	&General::writehash("${General::swroot}/qos/settings", \%qossettings);
+	system("/usr/local/bin/qosctrl stop >/dev/null 2>&1");
+	system("/usr/local/bin/qosctrl generate >/dev/null 2>&1");
+	system("logger -t ipfire 'QoS stopped'");
 }
 elsif ($qossettings{'ACTION'} eq $Lang::tr{'restart'})
 {
@@ -587,7 +585,6 @@ END
 		$qossettings{'ENABLED'} = 'on';
 		&General::writehash("${General::swroot}/qos/settings", \%qossettings);
 		system("/usr/local/bin/qosctrl generate >/dev/null 2>&1");
-		system("/usr/bin/touch /var/ipfire/qos/enable");
 		system("/usr/local/bin/qosctrl start >/dev/null 2>&1");
 		system("logger -t ipfire 'QoS started'");
 	} else {
@@ -772,10 +769,10 @@ if ( ($qossettings{'DEFCLASS_INC'} eq '') || ($qossettings{'DEFCLASS_OUT'} eq ''
 	exit
 }
 
-	&Header::openbox('100%', 'center', "$qossettings{'RED_DEV'} $Lang::tr{'graph'}");
+	&Header::openbox('100%', 'center', "$qossettings{'RED_DEV'} $Lang::tr{'graph'}, $Lang::tr{'uplink'}");
 	&Graphs::makegraphbox("qos.cgi",$qossettings{'RED_DEV'},"hour","325");
 	&Header::closebox();
-	&Header::openbox('100%', 'center', "$qossettings{'IMQ_DEV'} $Lang::tr{'graph'}");
+	&Header::openbox('100%', 'center', "$qossettings{'IMQ_DEV'} $Lang::tr{'graph'}, $Lang::tr{'downlink'}");
 	&Graphs::makegraphbox("qos.cgi",$qossettings{'IMQ_DEV'},"hour","325");
 	&Header::closebox();
 
@@ -938,7 +935,7 @@ END
 		<tr><td width='33%' align='right'>$Lang::tr{'guaranteed bandwith'}:
 		    <td width='33%' align='left'><input type='text' size='20' name='MINBWDTH' maxlength='8' required='1' value="$qossettings{'MINBWDTH'}" />
 		    <td width='33%' align='center'>&nbsp;
-		<tr><td width='33%' align='right'>$Lang::tr{'max bandwith'}:
+		<tr><td width='33%' align='right'>$Lang::tr{'max bandwith'}&nbsp;<img src='/blob.gif' alt='*' />:
 		    <td width='33%' align='left'><input type='text' size='20' name='MAXBWDTH' maxlength='8' required='1' value="$qossettings{'MAXBWDTH'}" />
 		    <td width='33%' align='center'>&nbsp;
 		<tr><td width='33%' align='right'>Burst:
@@ -960,8 +957,8 @@ print <<END
 				<option value='1' $selected{'TOS'}{'1'}>$Lang::tr{'min costs'} (1)</option></select>
 		    <td width='33%' align='center'>&nbsp;
 		<tr><td width='33%' align='right'>$Lang::tr{'remark'}:
-		    <td width='66%' colspan='2' align='left'><input type='text' name='REMARK' size='40' maxlength='40' value="$qossettings{'REMARK'}" /> <img alt="" alt='blob' src='/blob.gif' />
-		<tr><td width='33%' align='right'>&nbsp;
+		    <td width='66%' colspan='2' align='left'><input type='text' name='REMARK' size='40' maxlength='40' value="$qossettings{'REMARK'}" />
+		<tr><td width='33%' align='right'><img src='/blob.gif' alt='*' />&nbsp;$Lang::tr{'required field'}
 		    <td width='33%' align='left'>&nbsp;
 		    <td width='33%' align='center'><input type='submit' name='DOCLASS' value='$Lang::tr{'save'}' />&nbsp;<input type='reset' value='$Lang::tr{'reset'}' />
 		</table></form>
@@ -1079,10 +1076,10 @@ END
 	print <<END
 		    </select><td width='33%' align='center'>&nbsp;
 		<tr><td width='33%' align='right'>$Lang::tr{'source ip'}:
-		    <td width='33%' align='left'><input type='text' name='QIP' maxlength='15' value='$qossettings{'QIP'}' />
+		    <td width='33%' align='left'><input type='text' name='QIP' maxlength='31' value='$qossettings{'QIP'}' />
 		    <td width='33%' align='center'>&nbsp;
 		<tr><td width='33%' align='right'>$Lang::tr{'destination ip'}:
-		    <td width='33%' align='left'><input type='text' name='DIP' maxlength='15' value='$qossettings{'DIP'}' />
+		    <td width='33%' align='left'><input type='text' name='DIP' maxlength='31' value='$qossettings{'DIP'}' />
 		    <td width='33%' align='center'><input type='hidden' name='CLASS' value='$qossettings{'CLASS'}' /><input type='submit' name='DOLEVEL7' value='$Lang::tr{'save'}' />
 		<tr><td colspan="3" align='center'><font color="red"><em>$Lang::tr{'qos warning'}</em></font>
 		</table></form>
@@ -1123,10 +1120,10 @@ END
 		    <td width='33%' align='left'><input type='text' name='DPORT' maxlength='11' value='$qossettings{'DPORT'}' />
 		    <td width='33%' align='center'>&nbsp;
 		<tr><td width='33%' align='right'>$Lang::tr{'source ip'}:
-		    <td width='33%' align='left'><input type='text' name='QIP' maxlength='15' value='$qossettings{'QIP'}' />
+		    <td width='33%' align='left'><input type='text' name='QIP' maxlength='31' value='$qossettings{'QIP'}' />
 		    <td width='33%' align='center'>&nbsp;
 		<tr><td width='33%' align='right'>$Lang::tr{'destination ip'}:
-		    <td width='33%' align='left'><input type='text' name='DIP' maxlength='15' value='$qossettings{'DIP'}' />
+		    <td width='33%' align='left'><input type='text' name='DIP' maxlength='31' value='$qossettings{'DIP'}' />
 		    <td width='33%' align='center'><input type='hidden' name='CLASS' value='$qossettings{'CLASS'}' /><input type='submit' name='DOPORT' value='$Lang::tr{'save'}' />
 		</table></form>
 END
@@ -1184,7 +1181,7 @@ sub showclasses {
 	  		@classline = split( /\;/, $classentry );
 	  		if ( $classline[0] eq $qossettings{'DEV'} )
 	  		{
-	  		  &Header::openbox('100%', 'center', "$Lang::tr{'Class'}: $classline[1]");
+	  		  &Header::openbox('100%', 'center', "$Lang::tr{'Class'}: $classline[1] $classline[8]");
 	  			print <<END
 				<table border='0' width='100%' cellspacing='0'>
 				<tr><td bgcolor='$color{'color20'}' width='10%' align='center'><b>$Lang::tr{'interface'}</b>
@@ -1209,22 +1206,22 @@ sub showclasses {
 					<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 						<input type='hidden' name='CLASS' value='$classline[1]' />
 						<input type='hidden' name='ACTION' value='$Lang::tr{'qos add subclass'}' />
-						<input type='image' alt='$Lang::tr{'add subclass'}' src='/images/addblue.gif' />
+						<input type='image' alt='$Lang::tr{'add subclass'}' title='$Lang::tr{'add subclass'}' src='/images/addblue.gif' />
 					</form>
 					<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 						<input type='hidden' name='CLASS' value='$classline[1]' />
 						<input type='hidden' name='ACTION' value='$Lang::tr{'Add Rule'}' />
-						<input type='image' alt='$Lang::tr{'Add Rule'}' src='/images/addgreen.gif' />
+						<input type='image' alt='$Lang::tr{'Add Rule'}' title='$Lang::tr{'Add Rule'}' src='/images/addgreen.gif' />
 					</form>
 					<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 						<input type='hidden' name='CLASS' value='$classline[1]' />
 						<input type='hidden' name='DOCLASS' value='$Lang::tr{'edit'}' />
-						<input type='image' alt='$Lang::tr{'edit'}' src='/images/edit.gif' />
+						<input type='image' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' src='/images/edit.gif' />
 					</form>
 					<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 						<input type='hidden' name='CLASS' value='$classline[1]' />
 						<input type='hidden' name='DOCLASS' value='$Lang::tr{'delete'}' />
-						<input type='image' alt='$Lang::tr{'delete'}' src='/images/delete.gif' />
+						<input type='image' alt='$Lang::tr{'delete'}' title='$Lang::tr{'delete'}' src='/images/delete.gif' />
 					</form>
 					</table>
 				    </td>
@@ -1249,13 +1246,13 @@ END
 						<input type='hidden' name='CLASS' value='$l7ruleline[0]' />
 						<input type='hidden' name='L7PROT' value='$l7ruleline[2]' />
 						<input type='hidden' name='DOLEVEL7' value='$Lang::tr{'edit'}' />
-						<input type='image' alt='$Lang::tr{'edit'}' src='/images/edit.gif' />
+						<input type='image' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' src='/images/edit.gif' />
 					</form>
 					<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 						<input type='hidden' name='CLASS' value='$l7ruleline[0]' />
 						<input type='hidden' name='L7PROT' value='$l7ruleline[2]' />
 						<input type='hidden' name='DOLEVEL7' value='$Lang::tr{'delete'}' />
-						<input type='image' alt='$Lang::tr{'delete'}' src='/images/delete.gif' />
+						<input type='image' alt='$Lang::tr{'delete'}' title='$Lang::tr{'delete'}' src='/images/delete.gif' />
 					</form>
 					</table>
 END
@@ -1314,7 +1311,7 @@ END
 						<input type='hidden' name='DIP' value='$portruleline[5]' />
 						<input type='hidden' name='DPORT' value='$portruleline[6]' />
 						<input type='hidden' name='DOPORT' value='$Lang::tr{'edit'}' />
-						<input type='image' alt='$Lang::tr{'edit'}' src='/images/edit.gif' />
+						<input type='image' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' src='/images/edit.gif' />
 					</form>
 					<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 						<input type='hidden' name='CLASS' value='$portruleline[0]' />
@@ -1324,7 +1321,7 @@ END
 						<input type='hidden' name='DIP' value='$portruleline[5]' />
 						<input type='hidden' name='DPORT' value='$portruleline[6]' />
 						<input type='hidden' name='DOPORT' value='$Lang::tr{'delete'}' />
-						<input type='image' alt='$Lang::tr{'delete'}' src='/images/delete.gif' />
+						<input type='image' alt='$Lang::tr{'delete'}' title='$Lang::tr{'delete'}' src='/images/delete.gif' />
 					</form>
 				    </table>
 END
@@ -1372,14 +1369,14 @@ END
 								<input type='hidden' name='DEV' value='$tosruleline[1]' />
 								<input type='hidden' name='TOS' value='$tosruleline[2]' />
 								<input type='hidden' name='DOTOS' value='$Lang::tr{'edit'}' />
-								<input type='image' alt='$Lang::tr{'edit'}' src='/images/edit.gif' />
+								<input type='image' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' src='/images/edit.gif' />
 							</form>
 							<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 								<input type='hidden' name='CLASS' value='$tosruleline[0]' />
 								<input type='hidden' name='DEV' value='$tosruleline[1]' />
 								<input type='hidden' name='TOS' value='$tosruleline[2]' />
 								<input type='hidden' name='DOTOS' value='$Lang::tr{'delete'}' />
-								<input type='image' alt='$Lang::tr{'delete'}' src='/images/delete.gif' />
+								<input type='image' alt='$Lang::tr{'delete'}' title='$Lang::tr{'delete'}' src='/images/delete.gif' />
 							</form>
 				    		</table>
 END
@@ -1407,17 +1404,17 @@ END
 						<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 							<input type='hidden' name='CLASS' value='$subclassline[2]' />
 							<input type='hidden' name='ACTION' value='$Lang::tr{'Add Rule'}' />
-							<input type='image' alt='$Lang::tr{'Add Rule'}' src='/images/addgreen.gif' />
+							<input type='image' alt='$Lang::tr{'Add Rule'}' title='$Lang::tr{'Add Rule'}' src='/images/addgreen.gif' />
 						</form>
 						<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 							<input type='hidden' name='CLASS' value='$subclassline[2]' />
 							<input type='hidden' name='DOSCLASS' value='$Lang::tr{'edit'}' />
-							<input type='image' alt='$Lang::tr{'edit'}' src='/images/edit.gif' />
+							<input type='image' alt='$Lang::tr{'edit'}' title='$Lang::tr{'edit'}' src='/images/edit.gif' />
 						</form>
 						<td><form method='post' action='$ENV{'SCRIPT_NAME'}'>
 							<input type='hidden' name='CLASS' value='$subclassline[2]' />
 							<input type='hidden' name='DOSCLASS' value='$Lang::tr{'delete'}' />
-							<input type='image' alt='$Lang::tr{'delete'}' src='/images/delete.gif' />
+							<input type='image' alt='$Lang::tr{'delete'}' title='$Lang::tr{'delete'}' src='/images/delete.gif' />
 						</form>
 						</table>
 END

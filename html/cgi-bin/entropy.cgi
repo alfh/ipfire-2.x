@@ -48,6 +48,64 @@ if ( $querry[0] ne~ "") {
 	&Graphs::makegraphbox("entropy.cgi", "day", '', 350);
 	&Header::closebox();
 
+	# Check for hardware support.
+	my $message;
+	my $message_colour = $Header::colourred;
+	if (&has_hwrng()) {
+		$message = $Lang::tr{'system has hwrng'};
+		$message_colour = $Header::colourgreen;
+	} elsif (&has_rdrand()) {
+		$message = $Lang::tr{'system has rdrand'};
+		$message_colour = $Header::colourgreen;
+	} else {
+		$message = $Lang::tr{'no hardware random number generator'};
+	}
+
+	my $rngd_status = "<td align='center' bgcolor='${Header::colourred}'><font color='white'><b>$Lang::tr{'stopped'}</b></font></td>";
+	if (&rngd_is_running()) {
+		$rngd_status = "<td align='center' bgcolor='${Header::colourgreen}'><font color='white'><b>$Lang::tr{'running'}</b></font></td>";
+	}
+
+	&Header::openbox('100%', 'center', $Lang::tr{'hardware support'});
+	print <<EOF;
+		<p style="color: $message_colour; text-align: center;">$message</p>
+
+		<table width='80%' cellspacing='1' class='tbl'>
+			<tr>
+				<th align='center'><b>$Lang::tr{'service'}</b></th>
+				<th align='center'><b>$Lang::tr{'status'}</b></th>
+			</tr>
+			<tr>
+				<td align='center'>
+					$Lang::tr{'random number generator daemon'}
+				</td>
+				$rngd_status
+			</tr>
+		</table>
+EOF
+	&Header::closebox();
+
 	&Header::closebigbox();
 	&Header::closepage();
+}
+
+sub has_hwrng() {
+	return (-c "/dev/hwrng");
+}
+
+sub has_rdrand() {
+	open(FILE, "/proc/cpuinfo") or return 0;
+	my @cpuinfo = <FILE>;
+	close(FILE);
+
+	my @result = grep(/rdrand/, @cpuinfo);
+	if (@result) {
+		return 1;
+	}
+
+	return 0;
+}
+
+sub rngd_is_running() {
+	return (-e "/var/run/rngd.pid");
 }

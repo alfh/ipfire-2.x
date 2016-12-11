@@ -92,8 +92,8 @@ sub makegraphbox {
 	print "<a href='".$_[0]."?".$_[1]."?month' target='".$_[1]."box'><b>".$Lang::tr{'month'}."</b></a>";
 	print " - ";
 	print "<a href='".$_[0]."?".$_[1]."?year' target='".$_[1]."box'><b>".$Lang::tr{'year'}."</b></a>";
+	print "<br></center>";
 	print "<iframe src='".$_[0]."?".$_[1]."?".$_[2]."' width='".$width."' height='".$height."' scrolling='no' frameborder='no' marginheight='0' name='".$_[1]."box'></iframe>";
-	print "</center>";
 }
 
 # Generate the CPU Graph for the current period of time for values given by
@@ -257,11 +257,11 @@ sub updateloadgraph {
 		"DEF:load1=".$mainsettings{'RRDLOG'}."/collectd/localhost/load/load.rrd:shortterm:AVERAGE",
 		"DEF:load5=".$mainsettings{'RRDLOG'}."/collectd/localhost/load/load.rrd:midterm:AVERAGE",
 		"DEF:load15=".$mainsettings{'RRDLOG'}."/collectd/localhost/load/load.rrd:longterm:AVERAGE",
-		"AREA:load1".$color{"color13"}."A0:1 ".$Lang::tr{'minute'}.":",
+		"AREA:load1".$color{"color13"}."A0:1 ".$Lang::tr{'minute'},
 		"GPRINT:load1:LAST:%5.2lf",
-		"AREA:load5".$color{"color18"}."A0:5 ".$Lang::tr{'minutes'}.":",
+		"AREA:load5".$color{"color18"}."A0:5 ".$Lang::tr{'minutes'},
 		"GPRINT:load5:LAST:%5.2lf",
-		"AREA:load15".$color{"color14"}."A0:15 ".$Lang::tr{'minutes'}.":",
+		"AREA:load15".$color{"color14"}."A0:15 ".$Lang::tr{'minutes'},
 		"GPRINT:load15:LAST:%5.2lf\\j",
 		"LINE1:load5".$color{"color13"},
 		"LINE1:load1".$color{"color18"},
@@ -422,12 +422,15 @@ sub updateprocessescpugraph {
 
 		push(@command,"COMMENT:".$Lang::tr{'caption'}."\\j");
 
+		my $colorIndex = 0;
 		foreach(@processesgraph){
+			my $colorIndex = 10 + $count % 15;
+			my $color="$color{\"color$colorIndex\"}";
 			chomp($_);my @name=split(/\-/,$_);chop($name[1]);
 			if ($count eq "0"){
-				push(@command,"AREA:".$name[1].random_hex_color(6)."A0:".$name[1]);
+				push(@command,"AREA:".$name[1].$color."A0:".$name[1]);
 			}else{
-				push(@command,"STACK:".$name[1].random_hex_color(6)."A0:".$name[1]);
+				push(@command,"STACK:".$name[1].$color."A0:".$name[1]);
 			}
 			$count++;
 		}
@@ -471,12 +474,15 @@ sub updateprocessesmemorygraph {
 
 		push(@command,"COMMENT:".$Lang::tr{'caption'}."\\j");
 
+		my $colorIndex = 0;
 		foreach(@processesgraph){
 			chomp($_);my @name=split(/\-/,$_);chop($name[1]);
+			my $colorIndex = 10 + $count % 15;
+			my $color="$color{\"color$colorIndex\"}";
 			if ($count eq "0"){
-				push(@command,"AREA:".$name[1].random_hex_color(6)."A0:".$name[1]);
+				push(@command,"AREA:".$name[1].$color."A0:".$name[1]);
 			}else{
-				push(@command,"STACK:".$name[1].random_hex_color(6)."A0:".$name[1]);
+				push(@command,"STACK:".$name[1].$color."A0:".$name[1]);
 			}
 			$count++;
 		}
@@ -513,7 +519,7 @@ sub updatediskgraph {
 		"CDEF:writen=write,-1,*",
 		"DEF:standby=".$mainsettings{'RRDLOG'}."/hddshutdown-".$disk.".rrd:standby:AVERAGE",
 		"CDEF:st=standby,INF,*",
-		"CDEF:st1=standby,-INF,*",
+		"CDEF:st1=standby,NEGINF,*",
 		"COMMENT:".sprintf("%-25s",$Lang::tr{'caption'}),
 		"COMMENT:".sprintf("%15s",$Lang::tr{'maximal'}),
 		"COMMENT:".sprintf("%15s",$Lang::tr{'average'}),
@@ -576,6 +582,118 @@ sub updateifgraph {
 		"GPRINT:outgoing:AVERAGE:%8.1lf %sBps",
 		"GPRINT:outgoing:MIN:%8.1lf %sBps",
 		"GPRINT:outgoing:LAST:%8.1lf %sBps\\j",
+		);
+		$ERROR = RRDs::error;
+		print "Error in RRD::graph for ".$interface.": ".$ERROR."\n" if $ERROR;
+}
+
+sub updatevpngraph {
+	my $interface = $_[0];
+	my $period    = $_[1];
+	RRDs::graph(
+		"-",
+		"--start",
+		"-1".$period,
+		"-aPNG",
+		"-i",
+		"-z",
+		"-W www.ipfire.org",
+		"--alt-y-grid",
+		"-w 600",
+		"-h 125",
+		"-r",
+		"-t ".$Lang::tr{'traffic on'}." ".$interface." ".$Lang::tr{'graph per'}." ".$Lang::tr{$period."-graph"},
+		"-v ".$Lang::tr{'bytes per second'},
+		"--color=SHADEA".$color{"color19"},
+		"--color=SHADEB".$color{"color19"},
+		"--color=BACK".$color{"color21"},
+		"DEF:incoming=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/if_octets_derive.rrd:rx:AVERAGE",
+		"DEF:outgoing=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/if_octets_derive.rrd:tx:AVERAGE",
+		"CDEF:outgoingn=outgoing,-1,*",
+		"COMMENT:".sprintf("%-20s",$Lang::tr{'caption'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'maximal'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'average'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'minimal'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'current'})."\\j",
+		"AREA:incoming#00dd00:".sprintf("%-20s",$Lang::tr{'incoming traffic in bytes per second'}),
+		"GPRINT:incoming:MAX:%8.1lf %sBps",
+		"GPRINT:incoming:AVERAGE:%8.1lf %sBps",
+		"GPRINT:incoming:MIN:%8.1lf %sBps",
+		"GPRINT:incoming:LAST:%8.1lf %sBps\\j",
+		"AREA:outgoingn#dd0000:".sprintf("%-20s",$Lang::tr{'outgoing traffic in bytes per second'}),
+		"GPRINT:outgoing:MAX:%8.1lf %sBps",
+		"GPRINT:outgoing:AVERAGE:%8.1lf %sBps",
+		"GPRINT:outgoing:MIN:%8.1lf %sBps",
+		"GPRINT:outgoing:LAST:%8.1lf %sBps\\j",
+		);
+		$ERROR = RRDs::error;
+		print "Error in RRD::graph for ".$interface.": ".$ERROR."\n" if $ERROR;
+}
+
+sub updatevpnn2ngraph {
+	my $interface = $_[0];
+	my $period    = $_[1];
+	RRDs::graph(
+		"-",
+		"--start",
+		"-1".$period,
+		"-aPNG",
+		"-i",
+		"-z",
+		"-W www.ipfire.org",
+		"--alt-y-grid",
+		"-w 600",
+		"-h 125",
+		"-r",
+		"-t ".$Lang::tr{'traffic on'}." ".$interface." ".$Lang::tr{'graph per'}." ".$Lang::tr{$period."-graph"},
+		"-v ".$Lang::tr{'bytes per second'},
+		"--color=SHADEA".$color{"color19"},
+		"--color=SHADEB".$color{"color19"},
+		"--color=BACK".$color{"color21"},
+		"DEF:incoming=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/if_octets_derive-traffic.rrd:rx:AVERAGE",
+		"DEF:outgoing=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/if_octets_derive-traffic.rrd:tx:AVERAGE",
+		"DEF:overhead_in=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/if_octets_derive-overhead.rrd:rx:AVERAGE",
+		"DEF:overhead_out=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/if_octets_derive-overhead.rrd:tx:AVERAGE",
+		"DEF:compression_in=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/compression_derive-data_in.rrd:uncompressed:AVERAGE",
+		"DEF:compression_out=".$mainsettings{'RRDLOG'}."/collectd/localhost/openvpn-$interface/compression_derive-data_out.rrd:uncompressed:AVERAGE",
+		"CDEF:outgoingn=outgoing,-1,*",
+		"CDEF:overhead_outn=overhead_out,-1,*",
+		"CDEF:compression_outn=compression_out,-1,*",
+		"COMMENT:".sprintf("%-20s",$Lang::tr{'caption'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'maximal'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'average'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'minimal'}),
+		"COMMENT:".sprintf("%15s",$Lang::tr{'current'})."\\j",
+		"AREA:incoming#00dd00:".sprintf("%-23s",$Lang::tr{'incoming traffic in bytes per second'}),
+		"GPRINT:incoming:MAX:%8.1lf %sBps",
+		"GPRINT:incoming:AVERAGE:%8.1lf %sBps",
+		"GPRINT:incoming:MIN:%8.1lf %sBps",
+		"GPRINT:incoming:LAST:%8.1lf %sBps\\j",
+		"STACK:overhead_in#116B11:".sprintf("%-23s",$Lang::tr{'incoming overhead in bytes per second'}),
+		"GPRINT:overhead_in:MAX:%8.1lf %sBps",
+		"GPRINT:overhead_in:AVERAGE:%8.1lf %sBps",
+		"GPRINT:overhead_in:MIN:%8.1lf %sBps",
+		"GPRINT:overhead_in:LAST:%8.1lf %sBps\\j",
+		"LINE1:compression_in#ff00ff:".sprintf("%-23s",$Lang::tr{'incoming compression in bytes per second'}),
+		"GPRINT:compression_in:MAX:%8.1lf %sBps",
+		"GPRINT:compression_in:AVERAGE:%8.1lf %sBps",
+		"GPRINT:compression_in:MIN:%8.1lf %sBps",
+		"GPRINT:compression_in:LAST:%8.1lf %sBps\\j",
+		"AREA:outgoingn#dd0000:".sprintf("%-23s",$Lang::tr{'outgoing traffic in bytes per second'}),
+		"GPRINT:outgoing:MAX:%8.1lf %sBps",
+		"GPRINT:outgoing:AVERAGE:%8.1lf %sBps",
+		"GPRINT:outgoing:MIN:%8.1lf %sBps",
+		"GPRINT:outgoing:LAST:%8.1lf %sBps\\j",
+		"STACK:overhead_outn#870C0C:".sprintf("%-23s",$Lang::tr{'outgoing overhead in bytes per second'}),
+		"GPRINT:overhead_out:MAX:%8.1lf %sBps",
+		"GPRINT:overhead_out:AVERAGE:%8.1lf %sBps",
+		"GPRINT:overhead_out:MIN:%8.1lf %sBps",
+		"GPRINT:overhead_out:LAST:%8.1lf %sBps\\j",
+		"LINE1:compression_outn#000000:".sprintf("%-23s",$Lang::tr{'outgoing compression in bytes per second'}),
+		"GPRINT:compression_out:MAX:%8.1lf %sBps",
+		"GPRINT:compression_out:AVERAGE:%8.1lf %sBps",
+		"GPRINT:compression_out:MIN:%8.1lf %sBps",
+		"GPRINT:compression_out:LAST:%8.1lf %sBps\\j",
 		);
 		$ERROR = RRDs::error;
 		print "Error in RRD::graph for ".$interface.": ".$ERROR."\n" if $ERROR;
@@ -983,17 +1101,18 @@ sub updateqosgraph {
 		@classes = <FILE>;
 		close FILE;
 
+		my $colorIndex = 0;
 		foreach $classentry (sort @classes){
 			@classline = split( /\;/, $classentry );
 			if ( $classline[0] eq $qossettings{'DEV'} ){
-				$color=random_hex_color(6);
+				my $colorIndex = 10 + $count % 15;
+				$color="$color{\"color$colorIndex\"}";
 				push(@command, "DEF:$classline[1]=$mainsettings{'RRDLOG'}/class_$qossettings{'CLASSPRFX'}-$classline[1]_$qossettings{'DEV'}.rrd:bytes:AVERAGE");
 
 				if ($count eq "1") {
 					push(@command, "AREA:$classline[1]$color:$Lang::tr{'Class'} $classline[1] -".sprintf("%15s",$classline[8]));
 				} else {
 					push(@command, "STACK:$classline[1]$color:$Lang::tr{'Class'} $classline[1] -".sprintf("%15s",$classline[8]));
-
 				}
 
 				push(@command, "GPRINT:$classline[1]:MAX:%8.1lf %sBps"
@@ -1133,7 +1252,6 @@ sub updateentropygraph {
 		"-t $Lang::tr{'entropy'}",
 		"-v $Lang::tr{'bit'}",
 		"DEF:entropy=$mainsettings{'RRDLOG'}/collectd/localhost/entropy/entropy.rrd:entropy:AVERAGE",
-		"CDEF:entropytrend=entropy,43200,TREND",
 		"LINE3:entropy#ff0000:" . sprintf("%-15s", $Lang::tr{'entropy'}),
 		"VDEF:entrmin=entropy,MINIMUM",
 		"VDEF:entrmax=entropy,MAXIMUM",
@@ -1141,7 +1259,6 @@ sub updateentropygraph {
 		"GPRINT:entrmax:" . sprintf("%12s\\: %%5.0lf", $Lang::tr{'maximum'}),
 		"GPRINT:entrmin:" . sprintf("%12s\\: %%5.0lf", $Lang::tr{'minimum'}),
 		"GPRINT:entravg:" . sprintf("%12s\\: %%5.0lf", $Lang::tr{'average'}) . "\\n",
-		"LINE3:entropytrend#000000",
 	);
 
 	RRDs::graph (@command);

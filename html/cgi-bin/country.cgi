@@ -21,90 +21,84 @@
 
 use strict;
 
-use Locale::Country;
+use Locale::Codes::Country;
 
-my $flagdir = '/srv/web/ipfire/html/images/flags';
+my $col;
 my $lines = '1';
 my $lines2 = '';
-my @flaglist=();
-my @flaglistfiles=();
-my $flag = '';
 
 require '/var/ipfire/general-functions.pl';
+require "${General::swroot}/geoip-functions.pl";
 require "${General::swroot}/lang.pl";
 require "${General::swroot}/header.pl";
 
 &Header::showhttpheaders();
 
-&Header::openpage('Country Codes', 1, '');
-&Header::openbigbox('100%', 'LEFT');
+&Header::openpage($Lang::tr{'countries'}, 1, '');
+&Header::openbigbox('100%', 'left');
 
-&Header::openbox('100%', 'LEFT', 'Flags & Country Codes:');
-print "<TABLE WIDTH='100%' border='0' class='tbl'>";
-print "<tr><th width='5%'><b>Flag</b></th>";
-print "<th width='5%'><b>Code</b></th>";
-print "<th width='40%'><b>$Lang::tr{'country'}</b></th>";
-print "<th><b>&nbsp;</b></th>";
-print "<th width='5%'><b>Flag</b></th>";
-print "<th width='5%'><b>Code</b></th>";
-print "<th width='40%'><b>$Lang::tr{'country'}</b></th></tr>";
+&Header::openbox('100%', 'left', $Lang::tr{'country codes and flags'});
 
-@flaglist = <$flagdir/*>;
+print<<END;
+<table class='tbl'>
+	<tr>
+		<th style='width=5%'><b>$Lang::tr{'flag'}</b></th>
+		<th style='width=5%'><b>$Lang::tr{'countrycode'}</b></th>
+		<th style='width=40% text-align:left'><b>$Lang::tr{'country'}</b></th>
+		<th>&nbsp;</th>
+		<th style='width=5%'><b>$Lang::tr{'flag'}</b></th>
+		<th style='width=5%;'><b>$Lang::tr{'countrycode'}</b></th>
+		<th style='width=40% text-align:left;'><b>$Lang::tr{'country'}</b></th>
+	</tr>
+END
 
-undef @flaglistfiles;
+# Get a list of all supported country codes.
+my @countries = Locale::Codes::Country::all_country_codes();
 
-foreach (@flaglist)
-{
-	if (!-d) { push(@flaglistfiles,substr($_,rindex($_,"/")+1));	}
-}
-my $col="";
-foreach $flag (@flaglistfiles)
-{
+# Loop through whole country list.
+foreach my $country (@countries) {
 	$lines++;
 
-	my $flagcode = uc(substr($flag, 0, 2));
-	my $fcode = lc($flagcode);
-	my $country = Locale::Country::code2country($fcode);
-	if($fcode eq 'eu') { $country = 'Europe'; }
-	if($fcode eq 'tp') { $country = 'East Timor'; }
-	if($fcode eq 'yu') { $country = 'Yugoslavia'; }
+	# Convert country code into upper case.
+	my $country_uc = uc($country);
+
+	# Get flag icon for of the country.
+	my $flag_icon = &GeoIP::get_flag_icon($country);
+
+	# Get country name.
+	my $name = &GeoIP::get_full_country_name($country);
+
 	if ($lines % 2) {
-		print "<td $col><a name='$fcode'/><img src='/images/flags/$fcode.png' border='0' align='absmiddle' alt='$flagcode'</td>";
-		print "<td $col>$flagcode</td>";
-		print "<td $col>$country</td></tr>\n";
-}
-else {
-	$lines2++;
-	if($lines2 % 2) {
-		print "<tr>";
-		$col="bgcolor='${Header::table2colour}'";
+		print "<td $col><a id='$country'><img src='$flag_icon' alt='$country_uc' title='$country_uc'/></a></td>";
+		print "<td $col>$country_uc</td>";
+		print "<td $col>$name</td></tr>\n";
 	} else {
+		$lines2++;
+		if($lines2 % 2) {
+			$col="style='background-color:${Header::table2colour};'";
+		} else {
+			$col="style='background-color:${Header::table1colour};'";
+		}
 		print "<tr>";
-		$col="bgcolor='${Header::table1colour}'";
-	}
-	print "<td $col><a name='$fcode'/><img src='/images/flags/$fcode.png' border='0' align='absmiddle' alt='$flagcode'</td>";
-	print "<td $col>$flagcode</td>";
-	print "<td $col>$country</td>";
-	print "<td $col>&nbsp;</td>";
+		print "<td $col><a id='$country'><img src='$flag_icon' alt='$country_uc' title='$country_uc'/></a></td>";
+		print "<td $col>$country_uc</td>";
+		print "<td $col>$name</td>";
+		print "<td $col>&nbsp;</td>";
+
+		# Finish column when the last element in the array has passed and we have an uneven amount of items.
+		if ( $country eq $countries[-1] ) {
+			print "<td $col>&nbsp;</td>\n";
+			print "<td $col>&nbsp;</td>\n";
+			print "<td $col>&nbsp;</td></tr>\n";
+		}
 	}
 }
-
-
-print "</TABLE>";
+print "</table>";
 &Header::closebox();
 
 &Header::closebigbox();
 
-print <<END
-<div align='center'>
-<table width='80%'>
-<tr>
-<td align='center'><a href='$ENV{'HTTP_REFERER'}'>$Lang::tr{'back'}</a></td>
-</tr>
-</table>
-</div>
-END
-; 
+print "<div style='text-align:center'><a href='$ENV{'HTTP_REFERER'}'>$Lang::tr{'back'}</a></div>\n";
 
 &Header::closepage();
 

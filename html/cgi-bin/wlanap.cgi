@@ -2,7 +2,7 @@
 ###############################################################################
 #                                                                             #
 # IPFire.org - A linux based firewall                                         #
-# Copyright (C) 2005-2013  IPFire Team  <info@ipfire.org>                     #
+# Copyright (C) 2007-2014  IPFire Team  <info@ipfire.org>                     #
 #                                                                             #
 # This program is free software: you can redistribute it and/or modify        #
 # it under the terms of the GNU General Public License as published by        #
@@ -65,13 +65,13 @@ $wlanapsettings{'SSID'} = 'IPFire';
 $wlanapsettings{'HIDESSID'} = 'off';
 $wlanapsettings{'ENC'} = 'wpa2';               # none / wpa1 /wpa2
 $wlanapsettings{'TXPOWER'} = 'auto';
-$wlanapsettings{'CHANNEL'} = '05';
+$wlanapsettings{'CHANNEL'} = '6';
 $wlanapsettings{'COUNTRY'} = '00';
 $wlanapsettings{'HW_MODE'} = 'g';
 $wlanapsettings{'PWD'} = 'IPFire-2.x';
 $wlanapsettings{'SYSLOGLEVEL'} = '0';
 $wlanapsettings{'DEBUG'} = '4';
-$wlanapsettings{'DRIVER'} = 'MADWIFI';
+$wlanapsettings{'DRIVER'} = 'NL80211';
 $wlanapsettings{'HTCAPS'} = '';
 
 &General::readhash("/var/ipfire/wlanap/settings", \%wlanapsettings);
@@ -258,21 +258,40 @@ if ( -d '/sys/class/net/mon.'.$wlanapsettings{'INTERFACE'} ) {
 	$monwlaninterface =  'mon.'.$wlanapsettings{'INTERFACE'};
 }
 
-my @channellist_cmd = `iwlist $monwlaninterface channel|tail -n +2 2>/dev/null`;
+my @channellist_cmd;
+my @channellist;
+
+if ( $wlanapsettings{'DRIVER'} eq 'NL80211' ){
+my $wiphy = `iw dev $wlanapsettings{'INTERFACE'} info | grep wiphy | cut -d" " -f2`;
+chomp $wiphy;
+
+@channellist_cmd = `iw phy phy$wiphy info | grep " MHz \\\[" | grep -v "(disabled)" | grep -v "no IBSS" | grep -v "no IR" | grep -v "passive scanning" 2>/dev/null`;
+# get available channels
+
+my @temp;
+foreach (@channellist_cmd){
+$_ =~ /(.*) \[(\d+)(.*)\]/;
+$channel = $2;chomp $channel;
+if ( $channel =~ /\d+/ ){push(@temp,$channel + 0);}
+}
+@channellist = @temp;
+} else {
+@channellist_cmd = `iwlist $monwlaninterface channel|tail -n +2 2>/dev/null`;
 # get available channels
 
 my @temp;
 foreach (@channellist_cmd){
 $_ =~ /(.*)Channel (\d+)(.*):/;
 $channel = $2;chomp $channel;
-if ( $channel =~ /\d+/ ){push(@temp,$channel);}
+if ( $channel =~ /\d+/ ){push(@temp,$channel + 0);}
 }
-my @channellist = @temp;
+@channellist = @temp;
+}
 
 my @countrylist_cmd = `regdbdump /usr/lib/crda/regulatory.bin 2>/dev/null`;
 # get available country codes
 
-my @temp;
+my @temp = "00";
 foreach (@countrylist_cmd){
 $_ =~ /country (.*):/;
 $country = $1;chomp $country;
@@ -286,15 +305,6 @@ if ( $wlanapsettings{'DRIVER'} eq 'NL80211' ){
 	@txpower_cmd = `iwlist txpower 2>/dev/null | sed -e "s|unknown transmit-power information.||g"`;
 }
 # get available power
-
-my @temp;
-foreach (@txpower_cmd){
-$_ =~ /(\s)(\d+)(\s)dBm(\s)(.*)(\W)(\d+)(.*)/;
-$txpower = $7;chomp $txpower;
-if ( $txpower =~ /\d+/ ){push(@temp,$txpower."mW");}
-}
-my @txpower = @temp;
-push(@txpower,"auto");
 
 $selected{'SYSLOGLEVEL'}{$wlanapsettings{'SYSLOGLEVEL'}} = "selected='selected'";
 $selected{'DEBUG'}{$wlanapsettings{'DEBUG'}} = "selected='selected'";
@@ -418,20 +428,7 @@ END
 ;
 print <<END
 <tr><td width='25%' class='base'>HT Caps:&nbsp;</td><td class='base' colspan='3'><input type='text' name='HTCAPS' size='30' value='$wlanapsettings{'HTCAPS'}' /></td></tr>
-<tr><td width='25%' class='base'>Tx Power:&nbsp;</td><td class='base' colspan='3'>
-END
-;
-
-if ( $wlanapsettings{'DRIVER'} eq 'MADWIFI' ){
-	print "<select name='TXPOWER'>";
-	foreach $txpower (@txpower){
-		print "<option $selected{'TXPOWER'}{$txpower}>$txpower</option>&nbsp;dBm";
-	}
-	print "	</select></td></tr>";
-} else {
-	print "<input type='text' name='TXPOWER' size='10' value='$wlanapsettings{'TXPOWER'}' /></td></tr>"
-}
-print <<END
+<tr><td width='25%' class='base'>Tx Power:&nbsp;</td><td class='base' colspan='3'><input type='text' name='TXPOWER' size='10' value='$wlanapsettings{'TXPOWER'}' /></td></tr>
 <tr><td width='25%' class='base'>Loglevel (hostapd):&nbsp;</td><td class='base' width='25%'>
 	<select name='SYSLOGLEVEL'>
 		<option value='0' $selected{'SYSLOGLEVEL'}{'0'}>0 ($Lang::tr{'wlanap verbose'})</option>
@@ -488,12 +485,9 @@ print <<END
 </table>
 END
 ;
-
-if ( $wlanapsettings{'DRIVER'} eq 'MADWIFI' ){
-	 $status =  `wlanconfig $wlanapsettings{'INTERFACE'} list`;
-}
+my @status;
 if ( $wlanapsettings{'DRIVER'} eq 'NL80211' ){
-	 $status =  `iw dev $wlanapsettings{'INTERFACE'} station dump`;
+	 @status =  `iw dev $wlanapsettings{'INTERFACE'} info && iw dev $wlanapsettings{'INTERFACE'} station dump && echo ""`;
 }
 print <<END
 <br />
@@ -501,33 +495,37 @@ print <<END
 <tr><th colspan='3' bgcolor='$color{'color20'}' align='left'><strong>$Lang::tr{'wlanap wlan status'}</strong></th></tr>
 END
 ;
-foreach my $nr (@channellist_cmd){
-	my ($chan,$freq) = split(':',$nr);
-	if ($count % 2){
-		$col="bgcolor='$color{'color20'}'";
-	}else{
-		$col="bgcolor='$color{'color22'}'";
-	}
-	print"<tr><td $col>$chan</td><td $col>:</td><td $col>$freq</td></tr>";
-	$count++;
-}
+
+for (my $i=0;$i<$#status;$i++){
+
+if (@status[$i]=~"^Station ") { $count++; }
 if ($count % 2){
 		$col="bgcolor='$color{'color20'}'";
 	}else{
 		$col="bgcolor='$color{'color22'}'";
 	}
-if ($status){
-	print"<tr><td colspan='3' $col><pre>$status</pre></td></tr>";
-	$count++;
+	print"<tr><td colspan='3' $col><pre>@status[$i]</pre></td></tr>";
+	if (! @status[$i]=~"^/t" ) { $count++; }
 }
-for (my $i=0;$i<$#txpower_cmd;$i=$i+4){
-	next if (@txpower_cmd[$i] =~ /mon/i);
+	$count++;
+
+foreach my $nr (@channellist_cmd){
 	if ($count % 2){
 		$col="bgcolor='$color{'color20'}'";
 	}else{
 		$col="bgcolor='$color{'color22'}'";
 	}
-	print "<tr><td $col>@txpower_cmd[$i]</td><td $col>@txpower_cmd[$i+1]</td><td $col>@txpower_cmd[$i+2]</td></tr>";
+	print"<tr><td colspan='3' $col>$nr</td></tr>";
+	$count++;
+}
+
+for (my $i=0;$i<$#txpower_cmd;$i=$i+2){
+	if ($count % 2){
+		$col="bgcolor='$color{'color20'}'";
+	}else{
+		$col="bgcolor='$color{'color22'}'";
+	}
+	print "<tr><td $col>@txpower_cmd[$i]</td></tr>";
 	$count++;
 }
 print "</table><br>";
@@ -557,6 +555,7 @@ driver=$wlanapsettings{'DRIVER_HOSTAPD'}
 interface=$wlanapsettings{'INTERFACE'}
 country_code=$wlanapsettings{'COUNTRY'}
 ieee80211d=1
+ieee80211h=1
 channel=$wlanapsettings{'CHANNEL'}
 END
 ;

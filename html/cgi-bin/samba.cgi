@@ -67,8 +67,7 @@ $ovpnip[3]=$ovpnip[3]+1;
 ############################################################################################################################
 ############################################# Samba Dienste fr Statusberprfung ##########################################
 
-my %servicenames = ('SMB Daemon' => 'smbd','NetBIOS Nameserver' => 'nmbd');
-#my %servicenames = ('SMB Daemon' => 'smbd','NetBIOS Nameserver' => 'nmbd','Winbind Daemon' => 'winbindd');
+my %servicenames = ('SMB Daemon' => 'smbd', 'NetBIOS Nameserver' => 'nmbd', 'Winbind Daemon' => 'winbindd');
 
 &Header::showhttpheaders();
 
@@ -102,7 +101,7 @@ $sambasettings{'DISPLAYCHARSET'} = 'CP850';
 $sambasettings{'SOCKETOPTIONS'} = 'TCP_NODELAY SO_RCVBUF=819200 SO_SNDBUF=819200 SO_KEEPALIVE';
 $sambasettings{'WIDELINKS'} = 'on';
 $sambasettings{'UNIXEXTENSION'} = 'off';
-$sambasettings{'SMB2'} = 'off';
+$sambasettings{'SMB2'} = 'on';
 ### Values that have to be initialized
 $sambasettings{'ACTION'} = '';
 ### Samba CUPS Variablen
@@ -186,11 +185,15 @@ if ($sambasettings{'ACTION'} eq 'globalresetyes')
 	$sambasettings{'SOCKETOPTIONS'} = 'TCP_NODELAY SO_RCVBUF=819200 SO_SNDBUF=819200 SO_KEEPALIVE';
 	$sambasettings{'WIDELINKS'} = 'on';
 	$sambasettings{'UNIXEXTENSION'} = 'off';
-	$sambasettings{'SMB2'} = 'off';
+	$sambasettings{'SMB2'} = 'on';
 	$PDCOPTIONS = `cat ${General::swroot}/samba/pdc`;
 	system("/usr/local/bin/sambactrl smbreload");
 	refreshpage();
 	}
+
+if ($sambasettings{'ACTION'} eq 'join') {
+	$message .= &joindomain($sambasettings{'USERNAME'}, $sambasettings{'PASSWORD'});
+}
 
 ############################################################################################################################
 ################################################ Sicherheitsabfrage für den Reset ##########################################
@@ -276,6 +279,7 @@ print FILE <<END
 netbios name = $sambasettings{'NETBIOSNAME'}
 server string = $sambasettings{'SRVSTRING'}
 workgroup = $sambasettings{'WORKGRP'}
+realm = $mainsettings{'DOMAINNAME'}
 passdb backend = smbpasswd
 
 wide links = $sambasettings{'WIDELINKS'}
@@ -315,8 +319,12 @@ username level = 1
 wins support = $sambasettings{'WINSSUPPORT'}
 wins server = $sambasettings{'WINSSRV'}
 
+winbind separator = +
+winbind uid = 10000-20000
+winbind gid = 10000-20000
+winbind use default domain = yes
+
 log file       = /var/log/samba/samba-log.%m
-lock directory = /var/lock/samba
 pid directory  = /var/run/
 log level = $sambasettings{'LOGLEVEL'}
 syslog = $sambasettings{'SYSLOGLEVEL'}
@@ -384,6 +392,15 @@ if ($errormessage)
 	&Header::closebox();
 	}
 
+if ($message) {
+	$message = &Header::cleanhtml($message);
+	$message =~ s/\n/<br>/g;
+
+	&Header::openbox('100%', 'left', $Lang::tr{'messages'});
+	print "$message\n";
+	&Header::closebox();
+}
+
 ############################################################################################################################
 ########################################## Aktivieren von Checkboxen und Dropdowns #########################################
 
@@ -440,14 +457,6 @@ $selected{'SECURITY'}{$sambasettings{'SECURITY'}} = "selected='selected'";
 print <<END
 <br />
 <table width='95%' cellspacing='0'>
-END
-;
-if ( $message ne "" )
-	{
-	print "<tr><td colspan='3' align='left'><font color='red'>$message</font>";
-	}
-
-print <<END
 <tr bgcolor='$color{'color20'}'><td colspan='2' align='left'><b>$Lang::tr{'all services'}</b></td></tr>
 </table><table width='95%' cellspacing='0'>
 END
@@ -816,10 +825,10 @@ END
 		<form method='post' action='$ENV{'SCRIPT_NAME'}#$Lang::tr{'accounting'}'>
 		<table width='95%' cellspacing='0'>
 		<tr bgcolor='$color{'color20'}'><td colspan='2' align='left'><b>$Lang::tr{'change passwords'}</b></td></tr>
-		<tr><td align='left'>$Lang::tr{'username'}</td><td><input type='text' name='USERNAME' value='$username' size='30' readonly /></td></tr>
+		<tr><td align='left'>$Lang::tr{'username'}</td><td><input type='text' name='USERNAME' value='$username' size='30' readonly='readonly' /></td></tr>
 		<tr><td align='left'>$Lang::tr{'password'}</td><td><input type='password' name='PASSWORD' value='$password' size='30' /></td></tr>
 		<tr><td colspan='2' align='center'><input type='hidden' name='ACTION' value='smbchangepw' />
-																				<input type='image' alt=$Lang::tr{'save'} title=$Lang::tr{'save'} src='/images/media-floppy.png' /></td></tr>
+			<input type='image' alt='$Lang::tr{'save'}' title='$Lang::tr{'save'}' src='/images/media-floppy.png' /></td></tr>
 		</table>
 		</form>
 END
@@ -844,7 +853,7 @@ END
 		<tr><td align='left'>$Lang::tr{'unix group'}</td><td><input type='text' name='GROUP' value='sambauser' size='30' /></td></tr>
 		<tr><td align='left'>$Lang::tr{'unix shell'}</td><td><input type='text' name='SHELL' value='/bin/false' size='30' /></td></tr>
 		<tr><td colspan='2' align='center'><input type='hidden' name='ACTION' value='smbuseradd' />
-																				<input type='image' alt=$Lang::tr{'save'} title=$Lang::tr{'save'} src='/images/media-floppy.png' /></td></tr>
+			<input type='image' alt='$Lang::tr{'save'}' title='$Lang::tr{'save'}' src='/images/media-floppy.png' /></td></tr>
 		</table>
 		</form>
 END
@@ -865,7 +874,7 @@ END
 		<tr><td align='left'>$Lang::tr{'unix group'}</td><td><input type='text' name='GROUP' value='sambawks' size='30' /></td></tr>
 		<tr><td align='left'>$Lang::tr{'unix shell'}</td><td><input type='text' name='SHELL' value='/bin/false' size='30' /></td></tr>
 		<tr><td colspan='2' align='center'><input type='hidden' name='ACTION' value='smbpcadd' />
-																				<input type='image' title=$Lang::tr{'save'} alt=$Lang::tr{'save'} src='/images/media-floppy.png' /></td></tr>
+			<input type='image' alt='$Lang::tr{'save'}' title='$Lang::tr{'save'}' src='/images/media-floppy.png' /></td></tr>
 		</table>
 		</form>
 END
@@ -873,6 +882,55 @@ END
 		}
 
 &Header::closebox();
+}
+
+if ($sambasettings{'SECURITY'} eq "ADS") {
+	&Header::openbox('100%', 'center', $Lang::tr{'samba join a domain'});
+
+	my $AD_DOMAINNAME = uc($mainsettings{'DOMAINNAME'});
+
+	print <<END;
+	<form method="POST" action="$ENV{'SCRIPT_NAME'}">
+		<input type="hidden" name="ACTION" value="join">
+
+		<table width="95%">
+			<tbody>
+				<tr>
+					<td width="40%">
+						$Lang::tr{'domain'}
+					</td>
+					<td>
+						$AD_DOMAINNAME
+					</td>
+				</tr>
+				<tr>
+					<td width="40%">
+						$Lang::tr{'administrator username'}
+					</td>
+					<td>
+						<input type="text" name="USERNAME" size="30">
+					</td>
+				</tr>
+				<tr>
+					<td width="40%">
+						$Lang::tr{'administrator password'}
+					</td>
+					<td>
+						<input type="password" name="PASSWORD" size="30">
+					</td>
+				</tr>
+				<tr>
+					<td></td>
+					<td>
+						<input type="submit" value="$Lang::tr{'samba join domain'}">
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+END
+
+	&Header::closebox();
 }
 
 ############################################################################################################################
@@ -1304,3 +1362,13 @@ sub isrunning
 		}
 	return $status;
 	}
+
+sub joindomain {
+	my $username = shift;
+	my $password = shift;
+
+	my @options = ("/usr/local/bin/sambactrl", "join", $username, $password);
+	my $output = qx(@options);
+
+	return $output;
+}

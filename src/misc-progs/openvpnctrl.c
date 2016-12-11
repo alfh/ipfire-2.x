@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 500
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -7,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#include <ftw.h>
 #include "setuid.h"
 #include "netutil.h"
 #include "libsmooth.h"
@@ -44,6 +46,18 @@ struct connection_struct {
 
 typedef struct connection_struct connection;
 
+static int recursive_remove_callback(const char* fpath, const struct stat* sb, int typeflag, struct FTW* ftwbuf) {
+	int rv = remove(fpath);
+	if (rv)
+		perror(fpath);
+
+	return rv;
+}
+
+static int recursive_remove(const char* path) {
+	return nftw(path, recursive_remove_callback, 64, FTW_DEPTH | FTW_PHYS);
+}
+
 void exithandler(void)
 {
 	if(kv)
@@ -73,6 +87,9 @@ void usage(void)
 	printf(" -kn2n --kill-net-2-net\n");
 	printf("      kills all net2net connections\n");
 	printf("      you may pass a connection name to the switch to only start a specific one\n");
+	printf(" -drrd --delete-rrd\n");
+	printf("      Deletes the RRD data for a specific client\n");
+	printf("      you need to pass a connection name (RW) to the switch to delete the directory (case sensitive)\n");
 	printf(" -d   --display\n");
 	printf("      displays OpenVPN status to syslog\n");
 	printf(" -fwr --firewall-rules\n");
@@ -365,6 +382,7 @@ ERROR:
 }
 
 void setFirewallRules(void) {
+	char command[STRING_SIZE];
 	char protocol[STRING_SIZE] = "";
 	char dport[STRING_SIZE] = "";
 	char dovpnip[STRING_SIZE] = "";
@@ -405,11 +423,15 @@ void setFirewallRules(void) {
 	if (!strcmp(enableorange, "on") && strlen(orangeif))
 		addRule(OVPNINPUT, orangeif, protocol, dport);
 
+	/* Allow ICMP error messages to pass. */
+	snprintf(command, STRING_SIZE - 1, "/sbin/iptables -A %s -p icmp"
+		" -m conntrack --ctstate RELATED -j RETURN", OVPNBLOCK);
+	executeCommand(command);
+
 	// read connection configuration
 	connection *conn = getConnections();
 
 	// set firewall rules for n2n connections
-	char command[STRING_SIZE];
 	char *local_subnet_address = NULL;
 	char *transfer_subnet_address = NULL;
 	while (conn != NULL) {
@@ -460,6 +482,10 @@ void startDaemon(void) {
 		snprintf(command, STRING_SIZE-1, "/sbin/modprobe tun");
 		executeCommand(command);
 		snprintf(command, STRING_SIZE-1, "/usr/sbin/openvpn --config /var/ipfire/ovpn/server.conf");
+		executeCommand(command);
+		snprintf(command, STRING_SIZE-1, "/bin/chown root.nobody /var/run/ovpnserver.log");
+		executeCommand(command);
+		snprintf(command, STRING_SIZE-1, "/bin/chmod 644 /var/run/ovpnserver.log");
 		executeCommand(command);
 	}
 }
@@ -525,6 +551,7 @@ int startNet2Net(char *name) {
 int killNet2Net(char *name) {
 	connection *conn = NULL;
 	connection *conn_iter;
+	int rc = 0;
 
 	conn_iter = getConnections();
 
@@ -557,7 +584,43 @@ int killNet2Net(char *name) {
 	snprintf(command, STRING_SIZE - 1, "/bin/rm -f %s", pidfile);
 	executeCommand(command);
 
+	char runfile[STRING_SIZE];
+	snprintf(runfile, STRING_SIZE - 1, "/var/run/openvpn/%s-n2n", conn->name);
+	rc = recursive_remove(runfile);
+	if (rc)
+		perror(runfile);
+
 	return 0;
+}
+
+int deleterrd(char *name) {
+	char rrd_dir[STRING_SIZE];
+
+	connection *conn = getConnections();
+	while(conn) {
+		if (strcmp(conn->name, name) != 0) {
+			conn = conn->next;
+			continue;
+		}
+
+		// Handle RW connections
+		if (strcmp(conn->type, "host") == 0) {
+			snprintf(rrd_dir, STRING_SIZE - 1, "/var/log/rrd/collectd/localhost/openvpn-%s/", name);
+
+		// Handle N2N connections
+		} else if (strcmp(conn->type, "net") == 0) {
+			snprintf(rrd_dir, STRING_SIZE - 1, "/var/log/rrd/collectd/localhost/openvpn-%s-n2n/", name);
+
+		// Unhandled connection type
+		} else {
+			conn = conn->next;
+			continue;
+		}
+
+		return recursive_remove(rrd_dir);
+	}
+
+	return 1;
 }
 
 void startAllNet2Net() {
@@ -628,6 +691,10 @@ int main(int argc, char *argv[]) {
 		}
 		else if( (strcmp(argv[1], "-kn2n") == 0) || (strcmp(argv[1], "--kill-net-2-net") == 0) ) {
 			killNet2Net(argv[2]);
+			return 0;
+		}
+		else if( (strcmp(argv[1], "-drrd") == 0) || (strcmp(argv[1], "--delete-rrd") == 0) ) {
+			deleterrd(argv[2]);
 			return 0;
 		} else {
 			usage();

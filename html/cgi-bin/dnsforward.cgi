@@ -106,8 +106,8 @@ if ($cgiparams{'ACTION'} eq $Lang::tr{'add'})
 			$cgiparams{'ID'} = $cgiparams{'EDITING'};
 		}
 	}
-	# Restart dnsmasq.
-	system('/usr/local/bin/dnsmasqctrl restart >/dev/null');
+	# Restart unbound
+	system('/usr/local/bin/unboundctrl restart >/dev/null');
 }
 
 ###
@@ -124,8 +124,8 @@ if ($cgiparams{'ACTION'} eq $Lang::tr{'remove'})
 		unless ($cgiparams{'ID'} eq $id) { print FILE "$line"; }
 	}
 	close(FILE);
-	# Restart dnsmasq.
-	system('/usr/local/bin/dnsmasqctrl restart >/dev/null');
+	# Restart unbound.
+	system('/usr/local/bin/unboundctrl restart >/dev/null');
 }
 
 ###
@@ -148,8 +148,8 @@ if ($cgiparams{'ACTION'} eq $Lang::tr{'toggle enable disable'})
 		}
 	}
 	close(FILE);
-	# Restart dnsmasq.
-	system('/usr/local/bin/dnsmasqctrl restart >/dev/null');
+	# Restart unbound.
+	system('/usr/local/bin/unboundctrl restart >/dev/null');
 }
 
 ###
@@ -207,20 +207,20 @@ if ($cgiparams{'ACTION'} eq $Lang::tr{'edit'}) {
 print <<END
 <table width='100%'>
 	<tr>
-		<td width='20%' class='base'><font>$Lang::tr{'dnsforward zone'}:</font></td>
+		<td width='20%' class='base'>$Lang::tr{'dnsforward zone'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 		<td><input type='text' name='ZONE' value='$cgiparams{'ZONE'}' size='24' /></td>
 		<td width='30%' class='base'>$Lang::tr{'enabled'}<input type='checkbox' name='ENABLED' $checked{'ENABLED'}{'on'} /></td>
 	</tr>
 
 	<tr>
-		<td width='20%' class='base'><font>$Lang::tr{'dnsforward forward_server'}:</font></td>
+		<td width='20%' class='base'>$Lang::tr{'dnsforward forward_server'}:&nbsp;<img src='/blob.gif' alt='*' /></td>
 		<td><input type='text' name='FORWARD_SERVER' value='$cgiparams{'FORWARD_SERVER'}' size='24' /></td>
 	</tr>
 </table>
 
 <table width='100%'>
 	<tr>
-		<td width ='20%' class='base'><font class='boldbase'>$Lang::tr{'remark'}:</font>&nbsp;<img src='/blob.gif' alt='*' /></td>
+		<td width ='20%' class='base'>$Lang::tr{'remark'}:</td>
 		<td><input type='text' name='REMARK' value='$cgiparams{'REMARK'}' size='40' maxlength='50' /></td>
 	</tr>
 </table>
@@ -229,7 +229,7 @@ print <<END
 
 <table width='100%'>
 	<tr>
-		<td class='base' width='55%'><img src='/blob.gif' alt ='*' align='top' />&nbsp;<font class='base'>$Lang::tr{'this field may be blank'}</font></td>
+		<td class='base' width='55%'><img src='/blob.gif' alt ='*' align='top' />&nbsp;$Lang::tr{'required field'}</td>
 		<td width='40%' align='right'>
 			<input type='hidden' name='ACTION' value='$Lang::tr{'add'}' />
 			<input type='submit' name='SUBMIT' value='$buttontext' />
